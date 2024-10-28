@@ -1,0 +1,22 @@
+---
+title: "TT data analysis"
+---
+
+```{r}
+library(skimr)
+library(tidyverse)
+```
+### Description of data
+
+### Columns to be used
+
+### Things to do: 
+  - prepare data for GraafTel algorithm
+  - write out plan for analysis
+  - 
+```{r}
+dat=readRDS('./TafelTrainer pilot data/tt_responses_all_clean.rds')
+dat %>% skim()
+```
+  
+  
