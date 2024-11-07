@@ -18,5 +18,18 @@ library(tidyverse)
 dat=readRDS('./TafelTrainer pilot data/tt_responses_all_clean.rds')
 dat %>% skim()
 ```
+```{r}
+dat %>% 
+  filter(level==1) %>%
+  #select(fact_id, user_id) %>% 
+  #group_by(user_id) %>% 
+  #unique() %>% 
+  #summarise(n=n()) %>% View()
+  #filter(fact_id==100) %>% 
+  #select(user_id) %>% unique
+  filter(user_id==63) %>% View
+  
+```
+
   
   
