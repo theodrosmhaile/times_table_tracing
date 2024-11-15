@@ -11,16 +11,17 @@ library(tidyverse)
 ### Columns to be used
 
 ### Things to do: 
-  - finish preparing data for GraafTel algorithm
+  - prepare data for GraafTel algorithm
   - write out plan for analysis
+  - 
 ```{r}
 dat <- readRDS('./TafelTrainer pilot data/tt_responses_all_clean.rds')
 dat <- dat %>% filter(level == 1)
 dat <- dat %>% mutate(correct = as.numeric(correct))
 
 dat <- dat %>%
-  arrange(user_id, fact_id, session_id) %>%
-  group_by(user_id, fact_id) %>%
+  arrange(user_id, cue_text, session_id) %>%
+  group_by(user_id, cue_text) %>%
   mutate(encounter_num = row_number()) %>%
   ungroup()
   
@@ -29,7 +30,7 @@ dat <- dat %>%
 # Function to get specific encounter based on encounter type
 get_encounter <- function(data, encounter_type) {
   data %>%
-    group_by(user_id, fact_id) %>%
+    group_by(user_id, cue_text) %>%
     filter(
       case_when(
         encounter_type == "second" ~ encounter_num == 2,
@@ -37,7 +38,7 @@ get_encounter <- function(data, encounter_type) {
         encounter_type == "last" ~ encounter_num == n()
       )
     ) %>%
-    select(user_id, fact_id, correct) %>%
+    select(user_id, cue_text, correct) %>%
     ungroup()
 }
 second_encounter_data <- get_encounter(dat, "second")
@@ -48,6 +49,9 @@ last_encounter_data <- get_encounter(dat, "last")
 write.table(second_encounter_data, "./graaftel_input_second.csv", row.names = FALSE, col.names = FALSE, sep = ",")
 write.table(middle_encounter_data, "./graaftel_input_middle.csv", row.names = FALSE, col.names = FALSE, sep = ",")
 write.table(last_encounter_data, "./graaftel_input_last.csv", row.names = FALSE, col.names = FALSE, sep = ",")
+```
+```{r}
+View(dat)
 ```
 ```{r}
 print(head(dat, 10))
