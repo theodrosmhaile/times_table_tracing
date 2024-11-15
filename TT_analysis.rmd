@@ -11,25 +11,53 @@ library(tidyverse)
 ### Columns to be used
 
 ### Things to do: 
-  - prepare data for GraafTel algorithm
+  - finish preparing data for GraafTel algorithm
   - write out plan for analysis
-  - 
 ```{r}
-dat=readRDS('./TafelTrainer pilot data/tt_responses_all_clean.rds')
-dat %>% skim()
-```
-```{r}
-dat %>% 
-  filter(level==1) %>%
-  #select(fact_id, user_id) %>% 
-  #group_by(user_id) %>% 
-  #unique() %>% 
-  #summarise(n=n()) %>% View()
-  #filter(fact_id==100) %>% 
-  #select(user_id) %>% unique
-  filter(user_id==63) %>% View
-  
-```
+dat <- readRDS('./TafelTrainer pilot data/tt_responses_all_clean.rds')
+dat <- dat %>% filter(level == 1)
+dat <- dat %>% mutate(correct = as.numeric(correct))
 
+dat <- dat %>%
+  arrange(user_id, fact_id, session_id) %>%
+  group_by(user_id, fact_id) %>%
+  mutate(encounter_num = row_number()) %>%
+  ungroup()
   
-  
+```
+```{r}
+# Function to get specific encounter based on encounter type
+get_encounter <- function(data, encounter_type) {
+  data %>%
+    group_by(user_id, fact_id) %>%
+    filter(
+      case_when(
+        encounter_type == "second" ~ encounter_num == 2,
+        encounter_type == "middle" ~ encounter_num == ceiling(n() / 2),
+        encounter_type == "last" ~ encounter_num == n()
+      )
+    ) %>%
+    select(user_id, fact_id, correct) %>%
+    ungroup()
+}
+second_encounter_data <- get_encounter(dat, "second")
+middle_encounter_data <- get_encounter(dat, "middle")
+last_encounter_data <- get_encounter(dat, "last")
+
+# Save each dataset as CSV
+write.table(second_encounter_data, "./graaftel_input_second.csv", row.names = FALSE, col.names = FALSE, sep = ",")
+write.table(middle_encounter_data, "./graaftel_input_middle.csv", row.names = FALSE, col.names = FALSE, sep = ",")
+write.table(last_encounter_data, "./graaftel_input_last.csv", row.names = FALSE, col.names = FALSE, sep = ",")
+```
+```{r}
+print(head(dat, 10))
+```
+```{r}
+print(head(second_encounter_data, 10))
+```
+```{r}
+print(head(middle_encounter_data, 10))
+```
+```{r}
+print(head(last_encounter_data, 10))
+```
