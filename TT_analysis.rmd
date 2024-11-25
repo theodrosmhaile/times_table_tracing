@@ -30,10 +30,17 @@ valid_responses <- 0:100
 dat <- dat %>%
   filter(as.numeric(given_response) %in% valid_responses)
 
+# Add multiplier and multiplicand columns globally to the dataset
+dat <- dat %>%
+  mutate(
+    multiplier = as.numeric(str_extract(cue_text, "^\\d+")), # Extract the first number in `cue_text`
+    multiplicand = as.numeric(str_extract(cue_text, "\\d+$")) # Extract the second number in `cue_text`
+  )
+
 # Function to process each level and add encounter counter
-prepare_level_data <- function(data, level) {
+prepare_level_data <- function(data, level_filter) {
   data %>%
-    filter(level == level) %>%
+    filter(level == level_filter) %>%
     arrange(user_id, cue_text, session_id) %>%
     group_by(user_id, cue_text) %>%
     mutate(encounter_num = row_number()) %>%
@@ -160,24 +167,36 @@ mean_accuracy_data %>%
 ### Descriptive stats
 ## Modified code with reusability
 ```{r}
-generate_descriptive_data <- function(data, level_filter = NULL) {
+generate_descriptive_data <- function(data) {
   # Group by cue_text and compute summary statistics
   data %>%
     select(given_response, cue_text, correct, level, fact_id) %>%
-    filter(given_response %in% need) %>%
-    filter(level==level_filter) %>%
     mutate(cue_text=fct_reorder(cue_text,fact_id)) %>% 
     group_by(cue_text) %>%
-    summarise(mean_acc = mean(correct), n=n(), se = sd(correct)/sqrt(n)) %>%
-    mutate('multiplier' = paste0("col",matrix(1:10,10,10) %>% t() %>% c()),
-    'multiplicand' = rep(c(1:10), 10)) %>%
+    summarise(mean_acc = mean(correct), n=n(), se = sd(correct)/sqrt(n)
+    ) %>%
+    mutate(
+      multiplier = as.numeric(str_extract(cue_text, "^\\d+")), # Extract the first number in `cue_text`
+      multiplicand = as.numeric(str_extract(cue_text, "\\d+$")) # Extract the second number in `cue_text`
+    ) %>%
     mutate(cue_text=fct_reorder(cue_text,multiplicand))
 }
 
+
 # Generate descriptive data
-dat4plot_level1 <- generate_descriptive_data(dat, level_filter = 1)
-dat4plot_level2 <- generate_descriptive_data(dat, level_filter = 2)
-dat4plot_level3 <- generate_descriptive_data(dat, level_filter = 3)
+dat4plot_level1 <- generate_descriptive_data(dat_level1)
+dat4plot_level1_first <- generate_descriptive_data(dat_level1_first)
+dat4plot_level1_middle <- generate_descriptive_data(dat_level1_middle)
+dat4plot_level1_last <- generate_descriptive_data(dat_level1_last)
+dat4plot_level2 <- generate_descriptive_data(dat_level2)
+dat4plot_level2_first <- generate_descriptive_data(dat_level2_first)
+dat4plot_level2_middle <- generate_descriptive_data(dat_level2_middle)
+dat4plot_level2_last <- generate_descriptive_data(dat_level2_last)
+dat4plot_level3 <- generate_descriptive_data(dat_level3)
+dat4plot_level3_first <- generate_descriptive_data(dat_level3_first)
+dat4plot_level3_middle <- generate_descriptive_data(dat_level3_middle)
+dat4plot_level3_last <- generate_descriptive_data(dat_level3_last)
+
 
 # Function to plot heatmaps with properly ordered and labeled axes
 plot_heatmap <- function(data, title) {
@@ -236,23 +255,59 @@ plot_barplot <- function(data, title) {
 
 # Generate plots for each level and overall
 # Heatmaps
-heatmap_level1 <- plot_heatmap(dat4plot_level1, "Heatmap of Mean Accuracy (Level 1)")
-heatmap_level2 <- plot_heatmap(dat4plot_level2, "Heatmap of Mean Accuracy (Level 2)")
-heatmap_level3 <- plot_heatmap(dat4plot_level3, "Heatmap of Mean Accuracy (Level 3)")
+heatmap_level1 <- plot_heatmap(dat4plot_level1, "Heatmap of Mean Accuracy (Level 1: Overall)")
+heatmap_level1_first <- plot_heatmap(dat4plot_level1_first, "Heatmap of Mean Accuracy (Level 1: First)")
+heatmap_level1_middle <- plot_heatmap(dat4plot_level1_middle, "Heatmap of Mean Accuracy (Level 1: Middle)")
+heatmap_level1_last <- plot_heatmap(dat4plot_level1_last, "Heatmap of Mean Accuracy (Level 1: Last)")
+heatmap_level2 <- plot_heatmap(dat4plot_level2, "Heatmap of Mean Accuracy (Level 2: Overall)")
+heatmap_level2_first <- plot_heatmap(dat4plot_level2_first, "Heatmap of Mean Accuracy (Level 2: First)")
+heatmap_level2_middle <- plot_heatmap(dat4plot_level2_middle, "Heatmap of Mean Accuracy (Level 2: Middle)")
+heatmap_level2_last <- plot_heatmap(dat4plot_level2_last, "Heatmap of Mean Accuracy (Level 2: Last)")
+heatmap_level3 <- plot_heatmap(dat4plot_level3, "Heatmap of Mean Accuracy (Level 3: Overall)")
+heatmap_level3_first <- plot_heatmap(dat4plot_level3_first, "Heatmap of Mean Accuracy (Level 3: First)")
+heatmap_level3_middle <- plot_heatmap(dat4plot_level3_middle, "Heatmap of Mean Accuracy (Level 3: Middle)")
+heatmap_level3_last <- plot_heatmap(dat4plot_level3_last, "Heatmap of Mean Accuracy (Level 3: Last)")
 
 # Bar Plots
-barplot_level1 <- plot_barplot(dat4plot_level1, "Bar Plot of Mean Accuracy (Level 1)")
-barplot_level2 <- plot_barplot(dat4plot_level2, "Bar Plot of Mean Accuracy (Level 2)")
-barplot_level3 <- plot_barplot(dat4plot_level3, "Bar Plot of Mean Accuracy (Level 3)")
+barplot_level1 <- plot_barplot(dat4plot_level1, "Bar Plot of Mean Accuracy (Level 1: Overall)")
+barplot_level1_first <- plot_barplot(dat4plot_level1_first, "Bar Plot of Mean Accuracy (Level 1: First)")
+barplot_level1_middle <- plot_barplot(dat4plot_level1_middle, "Bar Plot of Mean Accuracy (Level 1: Middle)")
+barplot_level1_last <- plot_barplot(dat4plot_level1_last, "Bar Plot of Mean Accuracy (Level 1: Last)")
+barplot_level2 <- plot_barplot(dat4plot_level2, "Bar Plot of Mean Accuracy (Level 2: Overall)")
+barplot_level2_first <- plot_barplot(dat4plot_level2_first, "Bar Plot of Mean Accuracy (Level 2: First)")
+barplot_level2_middle <- plot_barplot(dat4plot_level2_middle, "Bar Plot of Mean Accuracy (Level 2: Middle)")
+barplot_level2_last <- plot_barplot(dat4plot_level2_last, "Bar Plot of Mean Accuracy (Level 2: Last)")
+barplot_level3 <- plot_barplot(dat4plot_level3, "Bar Plot of Mean Accuracy (Level 3: Overall)")
+barplot_level3_first <- plot_barplot(dat4plot_level3_first, "Bar Plot of Mean Accuracy (Level 3: First)")
+barplot_level3_middle <- plot_barplot(dat4plot_level3_middle, "Bar Plot of Mean Accuracy (Level 3: Middle)")
+barplot_level3_last <- plot_barplot(dat4plot_level3_last, "Bar Plot of Mean Accuracy (Level 3: Last)")
 
 # Display plots
 heatmap_level1
+heatmap_level1_first
+heatmap_level1_middle
+heatmap_level1_last
 heatmap_level2
+heatmap_level2_first
+heatmap_level2_middle
+heatmap_level2_last
 heatmap_level3
+heatmap_level3_first
+heatmap_level3_middle
+heatmap_level3_last
 
 barplot_level1
+barplot_level1_first
+barplot_level1_middle
+barplot_level1_last
 barplot_level2
+barplot_level2_first
+barplot_level2_middle
+barplot_level2_last
 barplot_level3
+barplot_level3_first
+barplot_level3_middle
+barplot_level3_last
 ```
 ## Teddy Code
 This is just some playing around with visualizing the accuracy data. Some more clean up will be needed and plotting data at specific instances (first encounter, last encounter etc). The plots below show mean accuracy across all instances (which is something we want to separate out). 
