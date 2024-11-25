@@ -317,4 +317,43 @@ Think about doing some boxplots to see how the data is distributed for accuracy 
  - How many trials does it take students, on average, to learn the associations? You can show change (increase) in accuracy across sessions and/or change (decrease) in reaction time across sessions. 
  - Do you have other questions that come in mind for you about this dat
 
+## Original code
+```{r}
+dat4plot <- 
+  dat %>% 
+  select(given_response, cue_text, correct, level, fact_id) %>% 
+  filter(level==12) %>% 
+  mutate(cue_text=fct_reorder(cue_text,fact_id)) %>% 
+    group_by(cue_text) %>% 
+  summarise(mean_acc = mean(correct),
+            n=n(), 
+            se = sd(correct)/sqrt(n)) %>% 
+  mutate('tafel_column' = paste0("col",matrix(1:10,10,10) %>% 
+                                   t() %>%  
+                                   c()),
+         'multiplicant' = rep(c(1:10), 10)
+         ) %>% 
+  mutate(cue_text=fct_reorder(cue_text,multiplicant)) 
+
+dat4plot %>% 
+  ggplot(aes(x=cue_text, y=mean_acc, ymax=mean_acc+se, ymin=mean_acc-se, fill=as.factor(multiplicant)))+
+  geom_bar(stat = 'identity')+
+  geom_errorbar()+
+  theme(axis.text.x=element_text(angle = 90), 
+        legend.position = 'top')
+
+dat4plot %>% 
+  ggplot(aes(x=tafel_column, y = multiplicant, fill=mean_acc, label=round(mean_acc, 2))) +
+  geom_tile() +
+  geom_text()+
+  scale_fill_gradient2(limits=c(0.7,1),
+                       midpoint = 0.85,
+                          low='blue',
+                        mid="red",
+                           high = 'yellow',
+                          guide='colorbar',
+                          aesthetics = 'fill',
+                          breaks= seq(0.7,1,by=.01)
+                       )
+
 ```
