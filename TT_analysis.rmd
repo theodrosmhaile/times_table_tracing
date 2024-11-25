@@ -1,99 +1,268 @@
 ---
-title: "TT data analysis"
+title: "TafelTrainer Data Analysis Across Levels"
 ---
 
-```{r}
+```{r setup, include=FALSE}
+# Load required libraries
 library(skimr)
 library(tidyverse)
 ```
-### Description of data
 
-### Columns to be used
+### Description
+This analysis prepares data from Levels 1, 2, and 3 of the TafelTrainer dataset. The goal is to create datasets for GraafTel input (first, middle, and last encounters) and conduct descriptive analyses.
 
-### Things to do: 
-  - prepare data for GraafTel algorithm
-  - write out plan for analysis
-  - 
+### Data Preparation
 ```{r}
+# Load dataset
 dat <- readRDS('./TafelTrainer pilot data/tt_responses_all_clean.rds')
-dat <- dat %>% filter(level == 1)
-dat <- dat %>% mutate(correct = as.numeric(correct))
 
+# Initial filtering: Ensure 'correct' is numeric and clean `cue_text`
 dat <- dat %>%
-  arrange(user_id, cue_text, session_id) %>%
-  group_by(user_id, cue_text) %>%
-  mutate(encounter_num = row_number()) %>%
-  ungroup()
-  
-```
-```{r}
-# Function to get specific encounter based on encounter type
-get_encounter <- function(data, encounter_type) {
+  mutate(
+    correct = as.numeric(correct),
+    cue_text = str_replace_all(cue_text, "\\+", " ") # Replace "+" with a space
+  )
+
+# Define valid responses (numeric values ≤ 100)
+valid_responses <- 0:100
+
+# Filter for valid 'given_response'
+dat <- dat %>%
+  filter(as.numeric(given_response) %in% valid_responses)
+
+# Function to process each level and add encounter counter
+prepare_level_data <- function(data, level) {
+  data %>%
+    filter(level == level) %>%
+    arrange(user_id, cue_text, session_id) %>%
+    group_by(user_id, cue_text) %>%
+    mutate(encounter_num = row_number()) %>%
+    ungroup()
+}
+
+# Prepare full datasets for Levels 1, 2, and 3 (including `encounter_num`)
+dat_level1 <- prepare_level_data(dat, 1)
+dat_level2 <- prepare_level_data(dat, 2)
+dat_level3 <- prepare_level_data(dat, 3)
+
+# Function to filter specific encounters dynamically
+filter_encounter <- function(data, encounter_type) {
   data %>%
     group_by(user_id, cue_text) %>%
     filter(
       case_when(
-        encounter_type == "second" ~ encounter_num == 2,
-        encounter_type == "middle" ~ encounter_num == ceiling(n() / 2),
-        encounter_type == "last" ~ encounter_num == n()
+        # First encounter
+        encounter_type == "first" ~ encounter_num == 1,
+        # Middle encounter: Use ceiling(n() / 2), but if it results in 1, use 2 if available
+        encounter_type == "middle" ~ {
+          middle_encounter <- ceiling(n() / 2)
+          encounter_num == if_else(middle_encounter == 1 & n() > 1, 2L, middle_encounter)
+        },
+        # Last encounter
+        encounter_type == "last" ~ encounter_num == n(),
+        # Default: Exclude rows
+        TRUE ~ FALSE
       )
     ) %>%
-    select(user_id, cue_text, correct) %>%
     ungroup()
 }
-second_encounter_data <- get_encounter(dat, "second")
-middle_encounter_data <- get_encounter(dat, "middle")
-last_encounter_data <- get_encounter(dat, "last")
 
-# Save each dataset as CSV
-write.table(second_encounter_data, "./graaftel_input_second.csv", row.names = FALSE, col.names = FALSE, sep = ",")
-write.table(middle_encounter_data, "./graaftel_input_middle.csv", row.names = FALSE, col.names = FALSE, sep = ",")
-write.table(last_encounter_data, "./graaftel_input_last.csv", row.names = FALSE, col.names = FALSE, sep = ",")
-```
-```{r}
-View(dat)
-```
-```{r}
-print(head(dat, 10))
-```
-```{r}
-print(head(second_encounter_data, 10))
-```
-```{r}
-print(head(middle_encounter_data, 10))
-```
-```{r}
-print(head(last_encounter_data, 10))
+# Generate encounter-specific datasets dynamically from the full datasets
+dat_level1_first <- filter_encounter(dat_level1, "first")
+dat_level1_middle <- filter_encounter(dat_level1, "middle")
+dat_level1_last <- filter_encounter(dat_level1, "last")
+
+dat_level2_first <- filter_encounter(dat_level2, "first")
+dat_level2_middle <- filter_encounter(dat_level2, "middle")
+dat_level2_last <- filter_encounter(dat_level2, "last")
+
+dat_level3_first <- filter_encounter(dat_level3, "first")
+dat_level3_middle <- filter_encounter(dat_level3, "middle")
+dat_level3_last <- filter_encounter(dat_level3, "last")
 ```
 
+### Export Data for GraafTel
 ```{r}
-need=c(0:100) %>% 
-  as.character()
+# Function to export datasets
+export_graaftel_data <- function(data, level, encounter_type) {
+  # Construct the filename
+  file_name <- paste0("./graaftel_input_level", level, "_", encounter_type, ".csv")
+  # Select the required columns
+  data_to_export <- data %>%
+    select(user_id, cue_text, correct)
+  # Write data to CSV (without column headers)
+  write.table(data_to_export, file_name, row.names = FALSE, col.names = FALSE, sep = ",")
+}
 
-dat %>% 
-  select(given_response,cue_text) %>%
-  
-  unlist() %>% 
-  as.numeric() %>% 
-  as_tibble() %>% 
-  filter(value<=100) %>% 
-  #filter(given_response  %in%  need) %>% 
- # mutate(given_response=fct_reorder((given_response), need)) %>% 
-  #count(given_response)
-  
- ggplot(aes(x=value))+
-  geom_histogram(stat = 'count')+
-   theme(axis.text.x=element_text(angle = 90))
+# Export data for Level 1
+export_graaftel_data(dat_level1_first, 1, "first")
+export_graaftel_data(dat_level1_middle, 1, "middle")
+export_graaftel_data(dat_level1_last, 1, "last")
+
+# Export data for Level 2
+export_graaftel_data(dat_level2_first, 2, "first")
+export_graaftel_data(dat_level2_middle, 2, "middle")
+export_graaftel_data(dat_level2_last, 2, "last")
+
+# Export data for Level 3
+export_graaftel_data(dat_level3_first, 3, "first")
+export_graaftel_data(dat_level3_middle, 3, "middle")
+export_graaftel_data(dat_level3_last, 3, "last")
 ```
 
+### Verify Outputs
+```{r}
+# Prepare data for verification
+# Combine all levels and encounter types to verify overall distribution
+verify_data <- bind_rows(
+  dat_level1 %>% mutate(level == 1),
+  dat_level2 %>% mutate(level == 2),
+  dat_level3 %>% mutate(level == 3)
+)
+
+# Plot histogram for the distribution of responses
+# Ensures that the data used for GraafTel matches expected values
+verify_data %>%
+  select(given_response, cue_text, level) %>%
+  filter(given_response %in% 0:100) %>%
+  mutate(given_response = as.numeric(given_response)) %>%
+  ggplot(aes(x = given_response, fill = factor(level))) +
+  geom_histogram(binwidth = 1, position = "dodge") +
+  theme_minimal() +
+  labs(
+    title = "Distribution of Responses Across Levels",
+    x = "Given Response",
+    y = "Count",
+    fill = "Level"
+  ) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_brewer(palette = "Set3")
+
+# Calculate mean accuracy for each fact_id and level
+mean_accuracy_data <- verify_data %>%
+  group_by(level, cue_text) %>% # Group by level and fact_id
+  summarize(mean_accuracy = mean(correct), .groups = "drop") # Calculate mean accuracy
+
+# Create a box plot of mean accuracies
+mean_accuracy_data %>%
+  ggplot(aes(x = factor(level), y = mean_accuracy, fill = factor(level))) +
+  geom_boxplot(alpha = 0.7) +
+  theme_minimal() +
+  labs(
+    title = "Distribution of Mean Accuracies by Level",
+    x = "Level",
+    y = "Mean Accuracy",
+    fill = "Level"
+  ) +
+  scale_fill_brewer(palette = "Set3") +
+  theme(legend.position = "none")
+```
 ### Descriptive stats
-This is just some playing around with visualizing the accuracy data. Some more clean up will be needed and plotting data at specific instances (second encounter, last encounter etc). The plots below show mean accuracy across all instances (which is something we want to separate out). 
+## Modified code with reusability
+```{r}
+generate_descriptive_data <- function(data, level_filter = NULL) {
+  # Group by cue_text and compute summary statistics
+  data %>%
+    select(given_response, cue_text, correct, level, fact_id) %>%
+    filter(given_response %in% need) %>%
+    filter(level==level_filter) %>%
+    mutate(cue_text=fct_reorder(cue_text,fact_id)) %>% 
+    group_by(cue_text) %>%
+    summarise(mean_acc = mean(correct), n=n(), se = sd(correct)/sqrt(n)) %>%
+    mutate('multiplier' = paste0("col",matrix(1:10,10,10) %>% t() %>% c()),
+    'multiplicand' = rep(c(1:10), 10)) %>%
+    mutate(cue_text=fct_reorder(cue_text,multiplicand))
+}
+
+# Generate descriptive data
+dat4plot_level1 <- generate_descriptive_data(dat, level_filter = 1)
+dat4plot_level2 <- generate_descriptive_data(dat, level_filter = 2)
+dat4plot_level3 <- generate_descriptive_data(dat, level_filter = 3)
+
+# Function to plot heatmaps with properly ordered and labeled axes
+plot_heatmap <- function(data, title) {
+  # Update multiplier to numeric for proper ordering and labeling
+  data <- data %>%
+    mutate(multiplier = as.numeric(gsub("col", "", multiplier)))
+
+  data %>%
+    ggplot(aes(x = as.factor(multiplier), y = as.factor(multiplicand), fill = mean_acc, label = round(mean_acc, 2))) +
+    geom_tile() +
+    geom_text(size = 3) + # Adjust text size for readability
+    scale_fill_gradient2(
+      limits = c(0.7, 1),
+      midpoint = 0.85,
+      low = 'blue',
+      mid = "red",
+      high = 'yellow',
+      guide = 'colorbar',
+      aesthetics = 'fill',
+      breaks = seq(0.7, 1, by = 0.05) # Reduce the number of breaks for readability
+    ) +
+    theme_minimal() +
+    labs(
+      title = title,
+      x = "Multiplier",
+      y = "Multiplicand",
+      fill = "Mean Accuracy"
+    ) +
+    theme(
+      axis.text.x = element_text(angle = 0), # Ensure x-axis labels are horizontal
+      axis.text.y = element_text(angle = 0), # Ensure y-axis labels are clear
+      legend.key.height = unit(0.5, "cm") # Adjust legend key size for readability
+    )
+}
+
+# Function to plot bar plots with error bars
+plot_barplot <- function(data, title) {
+  data %>%
+    ggplot(aes(
+      x = cue_text, y = mean_acc, ymax = mean_acc + se, ymin = mean_acc - se, fill = as.factor(multiplicand)
+    )) +
+    geom_bar(stat = 'identity') +
+    geom_errorbar() +
+    scale_x_discrete(
+      breaks = levels(data$cue_text)[seq(1, length(levels(data$cue_text)), by = 10)] # Show every 10th label correctly
+    ) +
+    theme_minimal() +
+    labs(
+      title = title,
+      x = "Cue Text (Multiplication Fact)",
+      y = "Mean Accuracy",
+      fill = "Multiplicand"
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = 'top')
+}
+
+# Generate plots for each level and overall
+# Heatmaps
+heatmap_level1 <- plot_heatmap(dat4plot_level1, "Heatmap of Mean Accuracy (Level 1)")
+heatmap_level2 <- plot_heatmap(dat4plot_level2, "Heatmap of Mean Accuracy (Level 2)")
+heatmap_level3 <- plot_heatmap(dat4plot_level3, "Heatmap of Mean Accuracy (Level 3)")
+
+# Bar Plots
+barplot_level1 <- plot_barplot(dat4plot_level1, "Bar Plot of Mean Accuracy (Level 1)")
+barplot_level2 <- plot_barplot(dat4plot_level2, "Bar Plot of Mean Accuracy (Level 2)")
+barplot_level3 <- plot_barplot(dat4plot_level3, "Bar Plot of Mean Accuracy (Level 3)")
+
+# Display plots
+heatmap_level1
+heatmap_level2
+heatmap_level3
+
+barplot_level1
+barplot_level2
+barplot_level3
+```
+## Teddy Code
+This is just some playing around with visualizing the accuracy data. Some more clean up will be needed and plotting data at specific instances (first encounter, last encounter etc). The plots below show mean accuracy across all instances (which is something we want to separate out). 
 Think about doing some boxplots to see how the data is distributed for accuracy and reaction time data. The descriptives can be used to answer questions like: 
  - which items were most difficult for students?
  - what other patterns are salient in behavior?
  - How many trials does it take students, on average, to learn the associations? You can show change (increase) in accuracy across sessions and/or change (decrease) in reaction time across sessions. 
  - Do you have other questions that come in mind for you about this dat
 
+## Original code
 ```{r}
 dat4plot <- 
   dat %>% 
@@ -113,8 +282,6 @@ dat4plot <-
   mutate(cue_text=fct_reorder(cue_text,multiplicant)) 
 
 dat4plot %>% 
-
-  
   ggplot(aes(x=cue_text, y=mean_acc, ymax=mean_acc+se, ymin=mean_acc-se, fill=as.factor(multiplicant)))+
   geom_bar(stat = 'identity')+
   geom_errorbar()+
@@ -134,7 +301,5 @@ dat4plot %>%
                           aesthetics = 'fill',
                           breaks= seq(0.7,1,by=.01)
                        )
-  
 
 ```
-
