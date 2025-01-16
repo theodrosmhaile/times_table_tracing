@@ -1,6 +1,4 @@
----
-title: "TafelTrainer Data Analysis Across Levels"
----
+## TafelTrainer Data Analysis
 
 ```{r setup, include=FALSE}
 # Load required libraries
@@ -11,9 +9,11 @@ library(anytime)
 ```
 
 ### Description
+
 This analysis prepares data from Levels 1, 2, and 3 of the TafelTrainer dataset. The goal is to create datasets for GraafTel input (first, middle, and last encounters) and conduct descriptive analyses.
 
 ### Data Preparation
+
 ```{r}
 # Load dataset
 dat <- readRDS('./TafelTrainer pilot data/tt_responses_all_clean.rds')
@@ -91,6 +91,7 @@ dat_level3_last <- filter_encounter(dat_level3, "last")
 ```
 
 ### Export Data for GraafTel
+
 ```{r}
 # Function to export datasets
 export_graaftel_data <- function(data, level, encounter_type) {
@@ -120,6 +121,7 @@ export_graaftel_data(dat_level3_last, 3, "last")
 ```
 
 ### Verify Outputs
+
 ```{r}
 # Prepare data for verification
 # Combine all levels and encounter types to verify overall distribution
@@ -166,8 +168,9 @@ mean_accuracy_data %>%
   scale_fill_brewer(palette = "Set3") +
   theme(legend.position = "none")
 ```
-### Descriptive stats
-## Modified code with reusability
+
+### Descriptive Statistics
+
 ```{r}
 generate_descriptive_data <- function(data) {
   # Group by cue_text and compute summary statistics
@@ -311,50 +314,161 @@ barplot_level3_first
 barplot_level3_middle
 barplot_level3_last
 ```
-## Teddy's Comments
-This is just some playing around with visualizing the accuracy data. Some more clean up will be needed and plotting data at specific instances (first encounter, last encounter etc). The plots below show mean accuracy across all instances (which is something we want to separate out). 
-Think about doing some boxplots to see how the data is distributed for accuracy and reaction time data. The descriptives can be used to answer questions like: 
- - which items were most difficult for students?
- - what other patterns are salient in behavior?
- - How many trials does it take students, on average, to learn the associations? You can show change (increase) in accuracy across sessions and/or change (decrease) in reaction time across sessions. 
- - Do you have other questions that come in mind for you about this dat
 
-## Original code
+### GraafTel Data Export Analysis
 ```{r}
-dat4plot <- 
-  dat %>% 
-  select(given_response, cue_text, correct, level, fact_id) %>% 
-  filter(level==1) %>% 
-  mutate(cue_text=fct_reorder(cue_text,fact_id)) %>% 
-    group_by(cue_text) %>% 
-  summarise(mean_acc = mean(correct),
-            n=n(), 
-            se = sd(correct)/sqrt(n)) %>% 
-  mutate(
-      multiplier = as.numeric(str_extract(cue_text, "^\\d+")), # Extract the first number in `cue_text`
-      multiplicand = as.numeric(str_extract(cue_text, "\\d+$")) # Extract the second number in `cue_text`
-    ) %>% 
-  mutate(cue_text=fct_reorder(cue_text,multiplicand)) 
+# Create mean accuracy datasets for each level
+mean_accuracy_level1 <- verify_data %>%
+  filter(level == 1) %>% # Filter for Level 1 data only
+  group_by(cue_text) %>% # Group by cue_text
+  summarise(mean_accuracy = mean(correct), .groups = "drop") # Calculate mean accuracy
 
-dat4plot %>% 
-  ggplot(aes(x=cue_text, y=mean_acc, ymax=mean_acc+se, ymin=mean_acc-se, fill=as.factor(multiplicand)))+
-  geom_bar(stat = 'identity')+
-  geom_errorbar()+
-  theme(axis.text.x=element_text(angle = 90), 
-        legend.position = 'top')
+mean_accuracy_level2 <- verify_data %>%
+  filter(level == 2) %>% # Filter for Level 2 data only
+  group_by(cue_text) %>% # Group by cue_text
+  summarise(mean_accuracy = mean(correct), .groups = "drop") # Calculate mean accuracy
 
-dat4plot %>% 
-  ggplot(aes(x=multiplier, y = multiplicand, fill=mean_acc, label=round(mean_acc, 2))) +
-  geom_tile() +
-  geom_text()+
-  scale_fill_gradient2(limits=c(0.7,1),
-                       midpoint = 0.85,
-                          low='blue',
-                        mid="red",
-                           high = 'yellow',
-                          guide='colorbar',
-                          aesthetics = 'fill',
-                          breaks= seq(0.7,1,by=.01)
-                       )
+mean_accuracy_level3 <- verify_data %>%
+  filter(level == 3) %>% # Filter for Level 3 data only
+  group_by(cue_text) %>% # Group by cue_text
+  summarise(mean_accuracy = mean(correct), .groups = "drop") # Calculate mean accuracy
 
+```
+
+```{r}
+# Function to calculate mean accuracy from preprocessed datasets
+calculate_mean_accuracy <- function(data) {
+  data %>%
+    group_by(cue_text) %>% # Group by cue_text
+    summarise(mean_accuracy = mean(correct), .groups = "drop") # Calculate mean accuracy
+}
+
+# Generate mean accuracy datasets for Level 1
+mean_accuracy_level1_first <- calculate_mean_accuracy(dat_level1_first)
+mean_accuracy_level1_middle <- calculate_mean_accuracy(dat_level1_middle)
+mean_accuracy_level1_last <- calculate_mean_accuracy(dat_level1_last)
+
+# Generate mean accuracy datasets for Level 2
+mean_accuracy_level2_first <- calculate_mean_accuracy(dat_level2_first)
+mean_accuracy_level2_middle <- calculate_mean_accuracy(dat_level2_middle)
+mean_accuracy_level2_last <- calculate_mean_accuracy(dat_level2_last)
+
+# Generate mean accuracy datasets for Level 3
+mean_accuracy_level3_first <- calculate_mean_accuracy(dat_level3_first)
+mean_accuracy_level3_middle <- calculate_mean_accuracy(dat_level3_middle)
+mean_accuracy_level3_last <- calculate_mean_accuracy(dat_level3_last)
+```
+
+```{r}
+# Function to filter and clean GraafTel output
+filter_graaftel_data <- function(file_path) {
+  graaftel_data <- read_csv(file_path, col_names = FALSE, col_types = cols(
+    X1 = col_character(),
+    X2 = col_character(),
+    X3 = col_double(),
+    X4 = col_double(),
+    X5 = col_double()
+  ))
+
+  # Rename columns for clarity
+  colnames(graaftel_data) <- c("item", "cue_text", "skill1", "skill2", "skill3")
+
+  # Filter out rows containing "student" in the first column
+  graaftel_data <- graaftel_data %>%
+    filter(!str_detect(item, "student")) %>%
+    select(-item)
+
+  # Remove any leading spaces in cue_text
+  graaftel_data <- graaftel_data %>%
+    mutate(cue_text = str_trim(cue_text, side = "both"))
+
+  return(graaftel_data)
+}
+
+# List of file paths for all GraafTel outputs
+file_paths <- list.files(
+  path = "./GT_ratings",
+  pattern = "l[1-3]_(first|middle|last)_3sk.csv",
+  full.names = TRUE
+)
+
+# Apply the filtering function to all files
+filtered_graaftel_data <- lapply(file_paths, filter_graaftel_data)
+
+# Name the datasets based on file names without extensions
+names(filtered_graaftel_data) <- gsub(".*/|\\.csv$", "", file_paths)
+
+# Assign cleaned datasets to individual variables for the 9 cases
+l1_first_3sk <- filtered_graaftel_data[["l1_first_3sk"]]
+l1_middle_3sk <- filtered_graaftel_data[["l1_middle_3sk"]]
+l1_last_3sk <- filtered_graaftel_data[["l1_last_3sk"]]
+
+l2_first_3sk <- filtered_graaftel_data[["l2_first_3sk"]]
+l2_middle_3sk <- filtered_graaftel_data[["l2_middle_3sk"]]
+l2_last_3sk <- filtered_graaftel_data[["l2_last_3sk"]]
+
+l3_first_3sk <- filtered_graaftel_data[["l3_first_3sk"]]
+l3_middle_3sk <- filtered_graaftel_data[["l3_middle_3sk"]]
+l3_last_3sk <- filtered_graaftel_data[["l3_last_3sk"]]
+```
+
+```{r}
+# Function to calculate correlations for all encounters in a level
+calculate_all_correlations <- function(level, mean_accuracy_first, mean_accuracy_middle, mean_accuracy_last) {
+  list(
+    first = calculate_skill_correlations(level$first, mean_accuracy_first),
+    middle = calculate_skill_correlations(level$middle, mean_accuracy_middle),
+    last = calculate_skill_correlations(level$last, mean_accuracy_last)
+  ) %>%
+    bind_rows(.id = "encounter")
+}
+
+# Combine data from all levels and encounters
+combine_correlation_data <- function(levels) {
+  map_dfr(levels, ~ calculate_all_correlations(.x, .x$mean_accuracy_first, .x$mean_accuracy_middle, .x$mean_accuracy_last),
+          .id = "level")
+}
+
+# Data setup for each level (replace these with your datasets)
+level1 <- list(
+  first = l1_first_3sk,
+  middle = l1_middle_3sk,
+  last = l1_last_3sk,
+  mean_accuracy_first = mean_accuracy_level1_first,
+  mean_accuracy_middle = mean_accuracy_level1_middle,
+  mean_accuracy_last = mean_accuracy_level1_last
+)
+
+level2 <- list(
+  first = l2_first_3sk,
+  middle = l2_middle_3sk,
+  last = l2_last_3sk,
+  mean_accuracy_first = mean_accuracy_level2_first,
+  mean_accuracy_middle = mean_accuracy_level2_middle,
+  mean_accuracy_last = mean_accuracy_level2_last
+)
+
+level3 <- list(
+  first = l3_first_3sk,
+  middle = l3_middle_3sk,
+  last = l3_last_3sk,
+  mean_accuracy_first = mean_accuracy_level3_first,
+  mean_accuracy_middle = mean_accuracy_level3_middle,
+  mean_accuracy_last = mean_accuracy_level3_last
+)
+
+# Calculate correlations for all levels
+all_correlations <- combine_correlation_data(list(level1, level2, level3))
+
+# Plot correlations using a facet grid
+ggplot(all_correlations, aes(x = skill, y = pearsons_r, fill = skill)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.7) +
+  facet_grid(level ~ encounter) +
+  theme_minimal() +
+  labs(
+    title = "Correlations Between Skill Probabilities and Mean Accuracy",
+    x = "Skill",
+    y = "Pearson's r"
+  ) +
+  scale_fill_brewer(palette = "Set3")
 ```
