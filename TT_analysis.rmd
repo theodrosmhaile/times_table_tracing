@@ -16,7 +16,7 @@ This analysis prepares data from Levels 1, 2, and 3 of the TafelTrainer dataset.
 
 ```{r}
 # Load dataset
-dat <- readRDS('./TafelTrainer pilot data/tt_responses_all_clean.rds')
+dat <- readRDS('./TT_data/tt_responses_all_clean.rds')
 
 # Initial filtering: Ensure 'correct' is numeric and clean `cue_text`
 dat <- dat %>%
