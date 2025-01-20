@@ -170,7 +170,6 @@ mean_accuracy_data %>%
 ```
 
 ## Descriptive Statistics
-
 ```{r}
 generate_descriptive_data <- function(data) {
   # Group by cue_text and compute summary statistics
@@ -560,27 +559,127 @@ correlation_results <- bind_rows(
 correlation_results <- correlation_results %>%
   mutate(encounter = factor(encounter, levels = c("First", "Middle", "Last")))
 
+# Replace skill labels in the dataframe
+correlation_results <- correlation_results %>%
+  mutate(skill = recode(skill,
+                        "skill1_r" = "1",
+                        "skill2_r" = "2",
+                        "skill3_r" = "3"))
+
 # Plot Pearson's r for all levels and encounters using a facet grid
 ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
-  # geom_bar(stat = "identity", position = "dodge", width = 0.7) +
   geom_tile() +
   geom_text() +
   facet_wrap(vars(level)) +
   scale_fill_gradient2(
-      limits = c(-1, 1),
-      midpoint = 0,
-      low = 'blue',
-      mid = "white",
-      high = 'red',
-      guide = 'colorbar',
-      aesthetics = 'fill',
-      breaks = seq(-1, 1, by = 0.1) # Reduce the number of breaks for readability
-    ) +
+    limits = c(-1, 1),
+    midpoint = 0,
+    low = '#4575b4',   # Softer blue
+    mid = '#f7f7f7',   # Neutral white
+    high = '#d73027',  # Softer red
+    guide = guide_colorbar(
+      title = "Pearson\nCorrelation",
+      title.position = "right",
+      barheight = unit(8.4, "cm")  # Adjust legend height
+    ),
+    aesthetics = 'fill',
+    breaks = c(-1, -0.5, 0, 0.5, 1), # Set legend breaks to -1, 0, and 1
+  ) +
   theme_minimal() +
   labs(
     title = "Skill Probabilities vs Mean Reaction Time Across Levels and Encounters",
-    x = "Skill",
-    y = "Level"
-  ) #+
-  #scale_fill_brewer(palette = "Set3", guide = "none")
+    x = "Level",
+    y = "Skill"
+  )
+```
+# Calculate and plot correlations between skill probabilties from L2 and memory decay (alpha) from L3
+```{r}
+# Function to calculate correlations between skill probabilities and memory decay rates (alpha)
+calculate_alpha_correlations <- function(graaftel_data, encounter_data) {
+  # Ensure cue_text alignment
+  graaftel_data <- graaftel_data %>%
+    mutate(cue_text = str_trim(cue_text))
+  encounter_data <- encounter_data %>%
+    mutate(cue_text = str_trim(cue_text))
+
+  # Remove rows with missing cue_text
+  graaftel_data <- graaftel_data %>%
+    filter(!is.na(cue_text))
+  encounter_data <- encounter_data %>%
+    filter(!is.na(cue_text))
+
+  # Summarise alpha (memory decay rate) by cue_text
+  alpha_data <- encounter_data %>%
+    group_by(cue_text) %>%
+    summarise(mean_alpha = mean(alpha, na.rm = TRUE), .groups = "drop")
+
+  # Join GraafTel data with alpha data on "cue_text"
+  merged_data <- graaftel_data %>%
+    left_join(alpha_data, by = "cue_text")
+
+  # Calculate Pearson's r for each skill
+  skill_correlations <- merged_data %>%
+    summarise(
+      skill1_r = cor(mean_alpha, skill1, use = "complete.obs"),
+      skill2_r = cor(mean_alpha, skill2, use = "complete.obs"),
+      skill3_r = cor(mean_alpha, skill3, use = "complete.obs")
+    )
+
+  # Reshape data for plotting
+  skill_correlations_long <- skill_correlations %>%
+    pivot_longer(cols = starts_with("skill"), names_to = "skill", values_to = "pearsons_r")
+
+  return(skill_correlations_long)
+}
+
+# Combine all correlation data into a single dataframe for Level 2 skills and memory decay rates
+combine_alpha_correlation_data <- function(encounter, graaftel_data, encounter_data) {
+  correlations <- calculate_alpha_correlations(graaftel_data, encounter_data)
+  correlations <- correlations %>%
+    mutate(level = "Level 2", encounter = encounter)
+  return(correlations)
+}
+
+# Create a consolidated dataframe for Level 2 correlations with memory decay rates
+alpha_correlation_results <- bind_rows(
+  combine_alpha_correlation_data("First", s3l2first, dat_level2_first),
+  combine_alpha_correlation_data("Middle", s3l2middle, dat_level2_middle),
+  combine_alpha_correlation_data("Last", s3l2last, dat_level2_last)
+)
+
+# Ensure proper ordering of encounters
+alpha_correlation_results <- alpha_correlation_results %>%
+  mutate(encounter = factor(encounter, levels = c("First", "Middle", "Last")))
+
+# Replace skill labels in the dataframe
+alpha_correlation_results <- alpha_correlation_results %>%
+  mutate(skill = recode(skill,
+                        "skill1_r" = "1",
+                        "skill2_r" = "2",
+                        "skill3_r" = "3"))
+
+# Plot Pearson's r for Level 2 skills and memory decay rates using a facet grid
+ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
+  geom_tile() +
+  geom_text() +
+  scale_fill_gradient2(
+    limits = c(-1, 1),
+    midpoint = 0,
+    low = '#4575b4',
+    mid = '#f7f7f7',
+    high = '#d73027',
+    guide = guide_colorbar(
+      title = "Pearson\nCorrelation",
+      title.position = "right",
+      barheight = unit(8.4, "cm")
+    ),
+    aesthetics = 'fill',
+    breaks = c(-1, -0.5, 0, 0.5, 1),
+  ) +
+  theme_minimal() +
+  labs(
+    title = "Level 2 Skills vs Memory Decay Rates (Alpha) Across Encounters",
+    x = "Encounter",
+    y = "Skill"
+  )
 ```
