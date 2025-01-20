@@ -13,7 +13,6 @@ library(anytime)
 This analysis prepares data from Levels 1, 2, and 3 of the TafelTrainer dataset. The goal is to create datasets for GraafTel input (first, middle, and last encounters) and conduct descriptive analyses.
 
 ## Data Preparation
-
 ```{r}
 # Load dataset
 dat <- readRDS('./TT_data/tt_responses_all_clean.rds')
@@ -89,14 +88,12 @@ dat_level3_first <- filter_encounter(dat_level3, "first")
 dat_level3_middle <- filter_encounter(dat_level3, "middle")
 dat_level3_last <- filter_encounter(dat_level3, "last")
 ```
-
 ## Export Data for GraafTel
-
 ```{r}
 # Function to export datasets
 export_graaftel_data <- function(data, level, encounter_type) {
   # Construct the filename
-  file_name <- paste0("./graaftel_input_level", level, "_", encounter_type, ".csv")
+  file_name <- paste0("./gt_in_l", level, encounter_type, ".csv")
   # Select the required columns
   data_to_export <- data %>%
     select(user_id, cue_text, correct)
@@ -104,20 +101,28 @@ export_graaftel_data <- function(data, level, encounter_type) {
   write.table(data_to_export, file_name, row.names = FALSE, col.names = FALSE, sep = ",")
 }
 
-# Export data for Level 1
-export_graaftel_data(dat_level1_first, 1, "first")
-export_graaftel_data(dat_level1_middle, 1, "middle")
-export_graaftel_data(dat_level1_last, 1, "last")
+# # Export data for Level 1
+# export_graaftel_data(dat_level1_first, 1, "first")
+# export_graaftel_data(dat_level1_middle, 1, "middle")
+# export_graaftel_data(dat_level1_last, 1, "last")
+# 
+# # Export data for Level 2
+# export_graaftel_data(dat_level2_first, 2, "first")
+# export_graaftel_data(dat_level2_middle, 2, "middle")
+# export_graaftel_data(dat_level2_last, 2, "last")
+# 
+# # Export data for Level 3
+# export_graaftel_data(dat_level3_first, 3, "first")
+# export_graaftel_data(dat_level3_middle, 3, "middle")
+# export_graaftel_data(dat_level3_last, 3, "last")
 
-# Export data for Level 2
-export_graaftel_data(dat_level2_first, 2, "first")
-export_graaftel_data(dat_level2_middle, 2, "middle")
-export_graaftel_data(dat_level2_last, 2, "last")
+export_graaftel_data(dat_level2_finishers_first, 2, "first")
+export_graaftel_data(dat_level2_finishers_middle, 2, "middle")
+export_graaftel_data(dat_level2_finishers_last, 2, "last")
 
-# Export data for Level 3
-export_graaftel_data(dat_level3_first, 3, "first")
-export_graaftel_data(dat_level3_middle, 3, "middle")
-export_graaftel_data(dat_level3_last, 3, "last")
+export_graaftel_data(dat_level3_finishers_first, 3, "first")
+export_graaftel_data(dat_level3_finishers_middle, 3, "middle")
+export_graaftel_data(dat_level3_finishers_last, 3, "last")
 ```
 
 ## Verify Outputs
@@ -591,6 +596,41 @@ ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, lab
     x = "Level",
     y = "Skill"
   )
+```
+# Check whether any students have not done level 3 problems
+```{r}
+# Identify unique students who have solved problems in Level 2
+students_level2 <- dat %>%
+  filter(level == 2) %>%
+  distinct(user_id) %>%
+  pull(user_id)
+
+# Identify unique students who have solved problems in Level 3
+students_level3 <- dat %>%
+  filter(level == 3) %>%
+  distinct(user_id) %>%
+  pull(user_id)
+
+# Find students who are in Level 2 but not in Level 3
+students_only_level2 <- setdiff(students_level2, students_level3)
+# Find students who are in Level 3 but not in Level 2
+students_only_level3 <- setdiff(students_level3, students_level2)
+
+# Create dat_level2_finishers by filtering out students who only did Level 2
+dat_level2_finishers <- dat_level2 %>%
+  filter(!user_id %in% students_only_level2)
+
+# Create dat_level3_finishers by filtering out students who only did Level 3
+dat_level3_finishers <- dat_level3 %>%
+  filter(!user_id %in% students_only_level3)
+
+dat_level2_finishers_first <- filter_encounter(dat_level2_finishers, "first")
+dat_level2_finishers_middle <- filter_encounter(dat_level2_finishers, "middle")
+dat_level2_finishers_last <- filter_encounter(dat_level2_finishers, "last")
+
+dat_level3_finishers_first <- filter_encounter(dat_level3_finishers, "first")
+dat_level3_finishers_middle <- filter_encounter(dat_level3_finishers, "middle")
+dat_level3_finishers_last <- filter_encounter(dat_level3_finishers, "last")
 ```
 # Calculate and plot correlations between skill probabilties from L2 and memory decay (alpha) from L3
 ```{r}
