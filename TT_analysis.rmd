@@ -116,9 +116,9 @@ export_graaftel_data <- function(data, level, encounter_type) {
 # export_graaftel_data(dat_level3_middle, 3, "middle")
 # export_graaftel_data(dat_level3_last, 3, "last")
 
-export_graaftel_data(dat_level2_finishers_first, 2, "first")
-export_graaftel_data(dat_level2_finishers_middle, 2, "middle")
-export_graaftel_data(dat_level2_finishers_last, 2, "last")
+export_graaftel_data(dat_level1_finishers_first, 1, "first")
+export_graaftel_data(dat_level1_finishers_middle, 1, "middle")
+export_graaftel_data(dat_level1_finishers_last, 1, "last")
 
 export_graaftel_data(dat_level3_finishers_first, 3, "first")
 export_graaftel_data(dat_level3_finishers_middle, 3, "middle")
@@ -599,9 +599,9 @@ ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, lab
 ```
 # Check whether any students have not done level 3 problems
 ```{r}
-# Identify unique students who have solved problems in Level 2
-students_level2 <- dat %>%
-  filter(level == 2) %>%
+# Identify unique students who have solved problems in Level 1
+students_level1 <- dat %>%
+  filter(level == 1) %>%
   distinct(user_id) %>%
   pull(user_id)
 
@@ -611,22 +611,25 @@ students_level3 <- dat %>%
   distinct(user_id) %>%
   pull(user_id)
 
-# Find students who are in Level 2 but not in Level 3
-students_only_level2 <- setdiff(students_level2, students_level3)
-# Find students who are in Level 3 but not in Level 2
-students_only_level3 <- setdiff(students_level3, students_level2)
+# Find students who are in Level 1 but not in Level 3
+students_only_level1 <- setdiff(students_level1, students_level3)
+# Find students who are in Level 3 but not in Level 1
+students_only_level3 <- setdiff(students_level3, students_level1)
 
-# Create dat_level2_finishers by filtering out students who only did Level 2
-dat_level2_finishers <- dat_level2 %>%
-  filter(!user_id %in% students_only_level2)
+students_only_level1
+students_only_level3
+
+# Create dat_level1_finishers by filtering out students who only did Level 1
+dat_level1_finishers <- dat_level1 %>%
+  filter(!user_id %in% students_only_level1)
 
 # Create dat_level3_finishers by filtering out students who only did Level 3
 dat_level3_finishers <- dat_level3 %>%
   filter(!user_id %in% students_only_level3)
 
-dat_level2_finishers_first <- filter_encounter(dat_level2_finishers, "first")
-dat_level2_finishers_middle <- filter_encounter(dat_level2_finishers, "middle")
-dat_level2_finishers_last <- filter_encounter(dat_level2_finishers, "last")
+dat_level1_finishers_first <- filter_encounter(dat_level1_finishers, "first")
+dat_level1_finishers_middle <- filter_encounter(dat_level1_finishers, "middle")
+dat_level1_finishers_last <- filter_encounter(dat_level1_finishers, "last")
 
 dat_level3_finishers_first <- filter_encounter(dat_level3_finishers, "first")
 dat_level3_finishers_middle <- filter_encounter(dat_level3_finishers, "middle")
