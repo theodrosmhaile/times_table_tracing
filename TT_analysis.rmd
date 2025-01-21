@@ -634,7 +634,7 @@ dat_level3_finishers_last <- filter_encounter(dat_level3_finishers, "last")
 ```
 # Calculate and plot correlations between skill probabilties from L2 and memory decay (alpha) from L3
 ```{r}
-# Function to calculate correlations between skill probabilities and memory decay rates (alpha)
+# Function to calculate correlations between Level 2 skill probabilities and Level 3 memory decay rates (alpha)
 calculate_alpha_correlations <- function(graaftel_data, encounter_data) {
   # Ensure cue_text alignment
   graaftel_data <- graaftel_data %>%
@@ -672,19 +672,24 @@ calculate_alpha_correlations <- function(graaftel_data, encounter_data) {
   return(skill_correlations_long)
 }
 
-# Combine all correlation data into a single dataframe for Level 2 skills and memory decay rates
+# Combine all correlation data into a single dataframe for Level 2 skills and Level 3 memory decay rates
 combine_alpha_correlation_data <- function(encounter, graaftel_data, encounter_data) {
   correlations <- calculate_alpha_correlations(graaftel_data, encounter_data)
   correlations <- correlations %>%
-    mutate(level = "Level 2", encounter = encounter)
+    mutate(level = "Level 2 to Level 3", encounter = encounter)
   return(correlations)
 }
 
-# Create a consolidated dataframe for Level 2 correlations with memory decay rates
+# Load GraafTel outputs for Level 2 from the /GT_ratings/finishers/ directory
+finishers_s3l2first <- filter_graaftel_data("./GT_ratings/finishers/s3l2first.csv")
+finishers_s3l2middle <- filter_graaftel_data("./GT_ratings/finishers/s3l2middle.csv")
+finishers_s3l2last <- filter_graaftel_data("./GT_ratings/finishers/s3l2last.csv")
+
+# Create a consolidated dataframe for Level 2 skills vs Level 3 memory decay rates correlations
 alpha_correlation_results <- bind_rows(
-  combine_alpha_correlation_data("First", s3l2first, dat_level2_first),
-  combine_alpha_correlation_data("Middle", s3l2middle, dat_level2_middle),
-  combine_alpha_correlation_data("Last", s3l2last, dat_level2_last)
+  combine_alpha_correlation_data("First", finishers_s3l2first, dat_level3_finishers_first),
+  combine_alpha_correlation_data("Middle", finishers_s3l2middle, dat_level3_finishers_middle),
+  combine_alpha_correlation_data("Last", finishers_s3l2last, dat_level3_finishers_last)
 )
 
 # Ensure proper ordering of encounters
@@ -698,7 +703,7 @@ alpha_correlation_results <- alpha_correlation_results %>%
                         "skill2_r" = "2",
                         "skill3_r" = "3"))
 
-# Plot Pearson's r for Level 2 skills and memory decay rates using a facet grid
+# Plot Pearson's r for Level 2 skills and Level 3 memory decay rates using a facet grid
 ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
   geom_tile() +
   geom_text() +
@@ -718,7 +723,7 @@ ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_
   ) +
   theme_minimal() +
   labs(
-    title = "Level 2 Skills vs Memory Decay Rates (Alpha) Across Encounters",
+    title = "Level 2 Skills vs Level 3 Memory Decay Rates (Alpha) Across Encounters",
     x = "Encounter",
     y = "Skill"
   )
