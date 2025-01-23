@@ -6,13 +6,16 @@ library(skimr)
 library(tidyverse)
 library(lubridate)
 library(anytime)
+library(ggcorrplot)
+library(patchwork)
+library(dplyr)
 ```
 
 ## Description
 
 This analysis prepares data from Levels 1, 2, and 3 of the TafelTrainer dataset. The goal is to create datasets for GraafTel input (first, middle, and last encounters) and conduct descriptive analyses.
 
-## Data Preparation
+# Data Preparation
 ```{r}
 # Load dataset
 dat <- readRDS('./TT_data/tt_responses_all_clean.rds')
@@ -88,7 +91,7 @@ dat_level3_first <- filter_encounter(dat_level3, "first")
 dat_level3_middle <- filter_encounter(dat_level3, "middle")
 dat_level3_last <- filter_encounter(dat_level3, "last")
 ```
-## Export Data for GraafTel
+# Export Data for GraafTel
 ```{r}
 # Function to export datasets
 export_graaftel_data <- function(data, level, encounter_type) {
@@ -125,7 +128,7 @@ export_graaftel_data(dat_level3_finishers_middle, 3, "middle")
 export_graaftel_data(dat_level3_finishers_last, 3, "last")
 ```
 
-## Verify Outputs
+# Verify Outputs
 
 ```{r}
 # Prepare data for verification
@@ -174,136 +177,86 @@ mean_accuracy_data %>%
   theme(legend.position = "none")
 ```
 
-## Descriptive Statistics
+# Descriptive Statistics
 ```{r}
-generate_descriptive_data <- function(data) {
-  # Group by cue_text and compute summary statistics
-  data %>%
-    select(given_response, cue_text, correct, level, fact_id) %>%
-    mutate(cue_text=fct_reorder(cue_text,fact_id)) %>% 
-    group_by(cue_text) %>%
-    summarise(mean_acc = mean(correct), n=n(), se = sd(correct)/sqrt(n)
-    ) %>%
-    mutate(
-      multiplier = as.numeric(str_extract(cue_text, "^\\d+")), # Extract the first number in `cue_text`
-      multiplicand = as.numeric(str_extract(cue_text, "\\d+$")) # Extract the second number in `cue_text`
-    ) %>%
-    mutate(cue_text=fct_reorder(cue_text,multiplicand))
-}
+df_heatmaps <- bind_rows(
+  dat4plot_level1       %>% mutate(facet_label = "Level 1: Overall"),
+  dat4plot_level1_first %>% mutate(facet_label = "Level 1: First"),
+  dat4plot_level1_middle %>% mutate(facet_label = "Level 1: Middle"),
+  dat4plot_level1_last  %>% mutate(facet_label = "Level 1: Last"),
+  
+  dat4plot_level2       %>% mutate(facet_label = "Level 2: Overall"),
+  dat4plot_level2_first %>% mutate(facet_label = "Level 2: First"),
+  dat4plot_level2_middle %>% mutate(facet_label = "Level 2: Middle"),
+  dat4plot_level2_last  %>% mutate(facet_label = "Level 2: Last"),
+  
+  dat4plot_level3       %>% mutate(facet_label = "Level 3: Overall"),
+  dat4plot_level3_first %>% mutate(facet_label = "Level 3: First"),
+  dat4plot_level3_middle %>% mutate(facet_label = "Level 3: Middle"),
+  dat4plot_level3_last  %>% mutate(facet_label = "Level 3: Last")
+)
 
-
-# Generate descriptive data
-dat4plot_level1 <- generate_descriptive_data(dat_level1)
-dat4plot_level1_first <- generate_descriptive_data(dat_level1_first)
-dat4plot_level1_middle <- generate_descriptive_data(dat_level1_middle)
-dat4plot_level1_last <- generate_descriptive_data(dat_level1_last)
-dat4plot_level2 <- generate_descriptive_data(dat_level2)
-dat4plot_level2_first <- generate_descriptive_data(dat_level2_first)
-dat4plot_level2_middle <- generate_descriptive_data(dat_level2_middle)
-dat4plot_level2_last <- generate_descriptive_data(dat_level2_last)
-dat4plot_level3 <- generate_descriptive_data(dat_level3)
-dat4plot_level3_first <- generate_descriptive_data(dat_level3_first)
-dat4plot_level3_middle <- generate_descriptive_data(dat_level3_middle)
-dat4plot_level3_last <- generate_descriptive_data(dat_level3_last)
-
-
-# Function to plot heatmaps with properly ordered and labeled axes
-plot_heatmap <- function(data, title) {
-  # Update multiplier to numeric for proper ordering and labeling
-  data <- data %>%
-    mutate(multiplier = as.numeric(gsub("col", "", multiplier)))
-
-  data %>%
-    ggplot(aes(x = as.factor(multiplier), y = as.factor(multiplicand), fill = mean_acc, label = round(mean_acc, 2))) +
-    geom_tile() +
-    geom_text(size = 3) + # Adjust text size for readability
-    scale_fill_gradient2(
-      limits = c(0.7, 1),
-      midpoint = 0.85,
-      low = 'blue',
-      mid = "red",
-      high = 'yellow',
-      guide = 'colorbar',
-      aesthetics = 'fill',
-      breaks = seq(0.7, 1, by = 0.05) # Reduce the number of breaks for readability
-    ) +
-    theme_minimal() +
-    labs(
-      title = title,
-      x = "Multiplier",
-      y = "Multiplicand",
-      fill = "Mean Accuracy"
-    ) +
-    theme(
-      axis.text.x = element_text(angle = 0), # Ensure x-axis labels are horizontal
-      axis.text.y = element_text(angle = 0), # Ensure y-axis labels are clear
-      legend.key.height = unit(0.5, "cm") # Adjust legend key size for readability
+# Ensure proper ordering of facet labels
+df_heatmaps <- df_heatmaps %>%
+  mutate(
+    facet_label = factor(
+      facet_label,
+      levels = c(
+        "Level 1: First", 
+        "Level 1: Middle", 
+        "Level 1: Last", 
+        "Level 1: Overall",
+        "Level 2: First", 
+        "Level 2: Middle", 
+        "Level 2: Last", 
+        "Level 2: Overall",
+        "Level 3: First", 
+        "Level 3: Middle", 
+        "Level 3: Last", 
+        "Level 3: Overall"
+      )
     )
-}
+  )
 
-# Function to plot bar plots with error bars
-plot_barplot <- function(data, title) {
-  data %>%
-    ggplot(aes(
-      x = cue_text, y = mean_acc, ymax = mean_acc + se, ymin = mean_acc - se, fill = as.factor(multiplicand)
-    )) +
-    geom_bar(stat = 'identity') +
-    geom_errorbar() +
-    scale_x_discrete(
-      breaks = levels(data$cue_text)[seq(1, length(levels(data$cue_text)), by = 10)] # Show every 10th label correctly
-    ) +
-    theme_minimal() +
-    labs(
-      title = title,
-      x = "Cue Text (Multiplication Fact)",
-      y = "Mean Accuracy",
-      fill = "Multiplicand"
-    ) +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = 'top')
-}
+# Plot the heatmap
+heatmap_facet <- ggplot(df_heatmaps, 
+                        aes(x = multiplier, 
+                            y = multiplicand, 
+                            fill = mean_acc, 
+                            label = round(mean_acc, 2))) +
+  geom_tile() +
+  geom_text(size = 1) +
+  scale_fill_gradient2(
+    limits = c(0.7, 1),
+    midpoint = 0.85,
+    low = '#4575b4',
+    mid = '#f7f7f7',
+    high = '#d73027',
+    guide = guide_colorbar(
+      title = "Mean Accuracy", 
+      title.position = "right", 
+      title.theme = element_text(angle = 90, hjust = 0.5),
+      barheight = unit(8, "cm")
+    ),
+    aesthetics = 'fill',
+    breaks = seq(0.7, 1, by = 0.05)
+  ) +
+  facet_wrap(~ facet_label, ncol = 4) +  # Adjust ncol as desired
+  theme_minimal() +
+  labs(
+    title = "Heatmaps of Mean Accuracy",
+    x = "Multiplier",
+    y = "Multiplicand"
+  ) +
+  theme(
+    axis.text.x = element_text(size = 8),
+    axis.text.y = element_text(size = 8),
+    legend.title = element_text(angle = 90, hjust = 0.5), 
+    legend.key.height = unit(0.5, "cm")
+  )
 
-# Generate plots for each level and overall
-# Heatmaps
-heatmap_level1 <- plot_heatmap(dat4plot_level1, "Heatmap of Mean Accuracy (Level 1: Overall)")
-heatmap_level1_first <- plot_heatmap(dat4plot_level1_first, "Heatmap of Mean Accuracy (Level 1: First)")
-heatmap_level1_middle <- plot_heatmap(dat4plot_level1_middle, "Heatmap of Mean Accuracy (Level 1: Middle)")
-heatmap_level1_last <- plot_heatmap(dat4plot_level1_last, "Heatmap of Mean Accuracy (Level 1: Last)")
-heatmap_level2 <- plot_heatmap(dat4plot_level2, "Heatmap of Mean Accuracy (Level 2: Overall)")
-heatmap_level2_first <- plot_heatmap(dat4plot_level2_first, "Heatmap of Mean Accuracy (Level 2: First)")
-heatmap_level2_middle <- plot_heatmap(dat4plot_level2_middle, "Heatmap of Mean Accuracy (Level 2: Middle)")
-heatmap_level2_last <- plot_heatmap(dat4plot_level2_last, "Heatmap of Mean Accuracy (Level 2: Last)")
-heatmap_level3 <- plot_heatmap(dat4plot_level3, "Heatmap of Mean Accuracy (Level 3: Overall)")
-heatmap_level3_first <- plot_heatmap(dat4plot_level3_first, "Heatmap of Mean Accuracy (Level 3: First)")
-heatmap_level3_middle <- plot_heatmap(dat4plot_level3_middle, "Heatmap of Mean Accuracy (Level 3: Middle)")
-heatmap_level3_last <- plot_heatmap(dat4plot_level3_last, "Heatmap of Mean Accuracy (Level 3: Last)")
-
-# Bar Plots
-barplot_level1 <- plot_barplot(dat4plot_level1, "Bar Plot of Mean Accuracy (Level 1: Overall)")
-barplot_level1_first <- plot_barplot(dat4plot_level1_first, "Bar Plot of Mean Accuracy (Level 1: First)")
-barplot_level1_middle <- plot_barplot(dat4plot_level1_middle, "Bar Plot of Mean Accuracy (Level 1: Middle)")
-barplot_level1_last <- plot_barplot(dat4plot_level1_last, "Bar Plot of Mean Accuracy (Level 1: Last)")
-barplot_level2 <- plot_barplot(dat4plot_level2, "Bar Plot of Mean Accuracy (Level 2: Overall)")
-barplot_level2_first <- plot_barplot(dat4plot_level2_first, "Bar Plot of Mean Accuracy (Level 2: First)")
-barplot_level2_middle <- plot_barplot(dat4plot_level2_middle, "Bar Plot of Mean Accuracy (Level 2: Middle)")
-barplot_level2_last <- plot_barplot(dat4plot_level2_last, "Bar Plot of Mean Accuracy (Level 2: Last)")
-barplot_level3 <- plot_barplot(dat4plot_level3, "Bar Plot of Mean Accuracy (Level 3: Overall)")
-barplot_level3_first <- plot_barplot(dat4plot_level3_first, "Bar Plot of Mean Accuracy (Level 3: First)")
-barplot_level3_middle <- plot_barplot(dat4plot_level3_middle, "Bar Plot of Mean Accuracy (Level 3: Middle)")
-barplot_level3_last <- plot_barplot(dat4plot_level3_last, "Bar Plot of Mean Accuracy (Level 3: Last)")
-
-# Display plots
-heatmap_level1
-heatmap_level1_first
-heatmap_level1_middle
-heatmap_level1_last
-heatmap_level2
-heatmap_level2_first
-heatmap_level2_middle
-heatmap_level2_last
-heatmap_level3
-heatmap_level3_first
-heatmap_level3_middle
-heatmap_level3_last
+# Print the faceted heatmap
+print(heatmap_facet)
 
 barplot_level1
 barplot_level1_first
@@ -319,7 +272,7 @@ barplot_level3_middle
 barplot_level3_last
 ```
 
-## GraafTel Data Export Analysis
+# GraafTel Data Export Analysis
 # Create mean accuracy datasets for each level
 ```{r}
 mean_accuracy_level1 <- verify_data %>%
@@ -362,7 +315,7 @@ mean_accuracy_level3_first <- calculate_mean_accuracy(dat_level3_first)
 mean_accuracy_level3_middle <- calculate_mean_accuracy(dat_level3_middle)
 mean_accuracy_level3_last <- calculate_mean_accuracy(dat_level3_last)
 ```
-# Create datasets for GraafTel ratings with 3 skills
+# Create datasets for GraafTel ratings
 ```{r}
 # Function to filter and clean GraafTel ratings output
 filter_graaftel_data <- function(file_path) {
@@ -371,11 +324,14 @@ filter_graaftel_data <- function(file_path) {
     X2 = col_character(),
     X3 = col_double(),
     X4 = col_double(),
-    X5 = col_double()
+    X5 = col_double(),
+    X6 = col_double(),
+    X7 = col_double(),
+    X8 = col_double()
   ))
 
   # Rename columns for clarity
-  colnames(graaftel_data) <- c("item", "cue_text", "skill1", "skill2", "skill3")
+  colnames(graaftel_data) <- c("item", "cue_text", "skill1", "skill2", "skill3", "skill4", "skill5", "skill6")
 
   # Filter out rows containing "student" in the first column
   graaftel_data <- graaftel_data %>%
@@ -391,8 +347,8 @@ filter_graaftel_data <- function(file_path) {
 
 # List of file paths for all GraafTel outputs
 file_paths <- list.files(
-  path = "./GT_ratings/GT_ratings_3s",
-  pattern = "s3l[1-3](first|middle|last).csv",
+  path = "./GT_ratings/GT_ratings_6s",
+  pattern = "s6l[1-3](first|middle|last).csv",
   full.names = TRUE
 )
 
@@ -403,17 +359,49 @@ filtered_graaftel_data <- lapply(file_paths, filter_graaftel_data)
 names(filtered_graaftel_data) <- gsub(".*/|\\.csv$", "", file_paths)
 
 # Assign cleaned datasets to individual variables for the 9 cases
-s3l1first <- filtered_graaftel_data[["s3l1first"]]
-s3l1middle <- filtered_graaftel_data[["s3l1middle"]]
-s3ls1last <- filtered_graaftel_data[["s3l1last"]]
+# s3l1first <- filtered_graaftel_data[["s3l1first"]]
+# s3l1middle <- filtered_graaftel_data[["s3l1middle"]]
+# s3ls1last <- filtered_graaftel_data[["s3l1last"]]
+# 
+# s3l2first <- filtered_graaftel_data[["s3l2first"]]
+# s3l2middle <- filtered_graaftel_data[["s3l2middle"]]
+# s3l2last <- filtered_graaftel_data[["s3l2last"]]
+# 
+# s3l3first <- filtered_graaftel_data[["s3l3first"]]
+# s3l3middle <- filtered_graaftel_data[["s3l3middle"]]
+# s3l3last <- filtered_graaftel_data[["s3l3last"]]
 
-s3l2first <- filtered_graaftel_data[["s3l2first"]]
-s3l2middle <- filtered_graaftel_data[["s3l2middle"]]
-s3l2last <- filtered_graaftel_data[["s3l2last"]]
+# s4l1first <- filtered_graaftel_data[["s4l1first"]]
+# s4l1middle <- filtered_graaftel_data[["s4l1middle"]]
+# s4ls1last <- filtered_graaftel_data[["s4l1last"]]
+# 
+# s4l2first <- filtered_graaftel_data[["s4l2first"]]
+# s4l2middle <- filtered_graaftel_data[["s4l2middle"]]
+# s4l2last <- filtered_graaftel_data[["s4l2last"]]
+# 
+# s4l3first <- filtered_graaftel_data[["s4l3first"]]
+# s4l3middle <- filtered_graaftel_data[["s4l3middle"]]
+# s4l3last <- filtered_graaftel_data[["s4l3last"]]
 
-s3l3first <- filtered_graaftel_data[["s3l3first"]]
-s3l3middle <- filtered_graaftel_data[["s3l3middle"]]
-s3l3last <- filtered_graaftel_data[["s3l3last"]]
+# s5l1first <- filtered_graaftel_data[["s5l1first"]]
+# s5l1middle <- filtered_graaftel_data[["s5l1middle"]]
+# s5ls1last <- filtered_graaftel_data[["s5l1last"]]
+# 
+# s5l2first <- filtered_graaftel_data[["s5l2first"]]
+# s5l2middle <- filtered_graaftel_data[["s5l2middle"]]
+# s5l2last <- filtered_graaftel_data[["s5l2last"]]
+# 
+# s5l3first <- filtered_graaftel_data[["s5l3first"]]
+# s5l3middle <- filtered_graaftel_data[["s5l3middle"]]
+# s5l3last <- filtered_graaftel_data[["s5l3last"]]
+
+s6l1first <- filtered_graaftel_data[["s6l1first"]]
+s6l1middle <- filtered_graaftel_data[["s6l1middle"]]
+s6ls1last <- filtered_graaftel_data[["s6l1last"]]
+
+s6l2first <- filtered_graaftel_data[["s6l2first"]]
+s6l2middle <- filtered_graaftel_data[["s6l2middle"]]
+s6l2last <- filtered_graaftel_data[["s6l2last"]]
 ```
 # Calculate and plot correlations between skill probabilties and mean accuracy
 ```{r}
@@ -579,11 +567,11 @@ ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, lab
   scale_fill_gradient2(
     limits = c(-1, 1),
     midpoint = 0,
-    low = '#4575b4',   # Softer blue
-    mid = '#f7f7f7',   # Neutral white
-    high = '#d73027',  # Softer red
+    low = '#4575b4',
+    mid = '#f7f7f7',
+    high = '#d73027',
     guide = guide_colorbar(
-      title = "Pearson\nCorrelation",
+      title = "Pearson Correlation",
       title.position = "right",
       barheight = unit(8.4, "cm")  # Adjust legend height
     ),
@@ -591,6 +579,9 @@ ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, lab
     breaks = c(-1, -0.5, 0, 0.5, 1), # Set legend breaks to -1, 0, and 1
   ) +
   theme_minimal() +
+  theme(
+    legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
+  ) +
   labs(
     title = "Skill Probabilities vs Mean Reaction Time Across Levels and Encounters",
     x = "Level",
@@ -679,20 +670,20 @@ calculate_alpha_correlations <- function(graaftel_data, encounter_data) {
 combine_alpha_correlation_data <- function(encounter, graaftel_data, encounter_data) {
   correlations <- calculate_alpha_correlations(graaftel_data, encounter_data)
   correlations <- correlations %>%
-    mutate(level = "Level 2 to Level 3", encounter = encounter)
+    mutate(level = "Level 1 to Level 3", encounter = encounter)
   return(correlations)
 }
 
-# Load GraafTel outputs for Level 2 from the /GT_ratings/finishers/ directory
-finishers_s3l2first <- filter_graaftel_data("./GT_ratings/finishers/s3l2first.csv")
-finishers_s3l2middle <- filter_graaftel_data("./GT_ratings/finishers/s3l2middle.csv")
-finishers_s3l2last <- filter_graaftel_data("./GT_ratings/finishers/s3l2last.csv")
+# Load GraafTel outputs for Level 1 from the /GT_ratings/finishers/ directory
+finishers_s3l1first <- filter_graaftel_data("./GT_ratings/finishers13/s3l1first.csv")
+finishers_s3l1middle <- filter_graaftel_data("./GT_ratings/finishers13/s3l1middle.csv")
+finishers_s3l1last <- filter_graaftel_data("./GT_ratings/finishers13/s3l1last.csv")
 
 # Create a consolidated dataframe for Level 2 skills vs Level 3 memory decay rates correlations
 alpha_correlation_results <- bind_rows(
-  combine_alpha_correlation_data("First", finishers_s3l2first, dat_level3_finishers_first),
-  combine_alpha_correlation_data("Middle", finishers_s3l2middle, dat_level3_finishers_middle),
-  combine_alpha_correlation_data("Last", finishers_s3l2last, dat_level3_finishers_last)
+  combine_alpha_correlation_data("First", finishers_s3l1first, dat_level3_finishers_first),
+  combine_alpha_correlation_data("Middle", finishers_s3l1middle, dat_level3_finishers_middle),
+  combine_alpha_correlation_data("Last", finishers_s3l1last, dat_level3_finishers_last)
 )
 
 # Ensure proper ordering of encounters
@@ -717,17 +708,328 @@ ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_
     mid = '#f7f7f7',
     high = '#d73027',
     guide = guide_colorbar(
-      title = "Pearson\nCorrelation",
+      title = "Pearson Correlation",
       title.position = "right",
-      barheight = unit(8.4, "cm")
+      barheight = unit(9, "cm")
     ),
     aesthetics = 'fill',
     breaks = c(-1, -0.5, 0, 0.5, 1),
   ) +
   theme_minimal() +
+  theme(
+    legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
+  ) +
   labs(
-    title = "Level 2 Skills vs Level 3 Memory Decay Rates (Alpha) Across Encounters",
+    title = "Level 1 Skills vs Level 3 Memory Decay Rates (α) Across Encounters",
     x = "Encounter",
     y = "Skill"
   )
+```
+# Calculate correlations against 2s (L2)
+```{r}
+df_first <- s3l2first %>%
+  mutate(encounter = "First")
+
+df_middle <- s3l2middle %>%
+  mutate(encounter = "Middle")
+
+df_last <- s3l2last %>%
+  mutate(encounter = "Last")
+
+# df_all has columns: cue_text, skill1, skill2, skill3, encounter
+df_all <- bind_rows(df_first, df_middle, df_last)
+
+filter_for_number <- function(data, number) {
+  # Looks for exact matches of 'number' in the cue_text (like "2" in "2 x 3")
+  data %>%
+    filter(str_detect(cue_text, paste0("\\b", number, "\\b")))
+}
+
+# Calculate mean skill usage by encounter
+calc_means_by_encounter <- function(data) {
+  data %>%
+    group_by(encounter) %>%
+    summarise(
+      mean_skill1 = mean(skill1, na.rm = TRUE),
+      mean_skill2 = mean(skill2, na.rm = TRUE),
+      mean_skill3 = mean(skill3, na.rm = TRUE),
+      .groups = "drop"
+    )
+}
+
+compute_skill_correlations <- function(dfA, dfB, labelA, labelB) {
+  # Join by `encounter` so we line up First, Middle, Last
+  joined <- dfA %>%
+    rename_with(~ paste0(.,"_", labelA), starts_with("mean_skill")) %>%
+    inner_join(
+      dfB %>% rename_with(~ paste0(.,"_", labelB), starts_with("mean_skill")),
+      by = "encounter"
+    )
+  
+  # Calculate correlation for each skill
+  corr_s1 <- cor(joined[[paste0("mean_skill1_", labelA)]],
+                 joined[[paste0("mean_skill1_", labelB)]],
+                 use = "complete.obs")
+  corr_s2 <- cor(joined[[paste0("mean_skill2_", labelA)]],
+                 joined[[paste0("mean_skill2_", labelB)]],
+                 use = "complete.obs")
+  corr_s3 <- cor(joined[[paste0("mean_skill3_", labelA)]],
+                 joined[[paste0("mean_skill3_", labelB)]],
+                 use = "complete.obs")
+  
+  # Return a data frame with results
+  tibble(
+    comparison = paste0(labelA, "_vs_", labelB),
+    skill = c("Skill1","Skill2","Skill3"),
+    pearsons_r = c(corr_s1, corr_s2, corr_s3)
+  )
+}
+
+# Generate Encounter-Means for the Groups of Interest
+numbers_of_interest <- c("1","2","3","4","5","6","7","8","9","10")
+
+# Create a named list that maps each group number to its summarized data
+grouped_means <- list()
+for(num in numbers_of_interest) {
+  group_data <- df_all %>% 
+    filter_for_number(num) %>%
+    calc_means_by_encounter()
+  grouped_means[[num]] <- group_data
+}
+
+# Compute Correlations for (2 vs 4), (2 vs 6), (2 vs 8), (2 vs 10) etc
+corr_results <- bind_rows(
+  compute_skill_correlations(grouped_means[["2"]], grouped_means[["1"]],  "2s", "1s"),
+  compute_skill_correlations(grouped_means[["2"]], grouped_means[["3"]],  "2s", "3s"),
+  compute_skill_correlations(grouped_means[["2"]], grouped_means[["4"]],  "2s", "4s"),
+  compute_skill_correlations(grouped_means[["2"]], grouped_means[["5"]],  "2s", "5s"),
+  compute_skill_correlations(grouped_means[["2"]], grouped_means[["6"]],  "2s", "6s"),
+  compute_skill_correlations(grouped_means[["2"]], grouped_means[["7"]],  "2s", "7s"),
+  compute_skill_correlations(grouped_means[["2"]], grouped_means[["8"]],  "2s", "8s"),
+  compute_skill_correlations(grouped_means[["2"]], grouped_means[["9"]],  "2s", "9s"),
+  compute_skill_correlations(grouped_means[["2"]], grouped_means[["10"]], "2s", "10s")
+)
+
+# Print correlation results to console
+print(corr_results)
+
+# Heatmap Visualisation of Correlations
+# Prepare data for heatmap
+heatmap_data <- corr_results %>%
+  mutate(
+    comparison = gsub("2s_vs_", "", comparison),  # Simplify comparison labels
+    skill = recode(skill, "Skill1" = "Skill 1", "Skill2" = "Skill 2", "Skill3" = "Skill 3"),
+    comparison = factor(comparison, levels = c("1s", "3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s"))
+  )
+
+# Create the heatmap
+heatmap_plot <- ggplot(heatmap_data, aes(x = comparison, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
+  geom_tile() +  # Create the heatmap tiles
+  geom_text(size = 3) +  # Add Pearson's r as text in the tiles
+  scale_fill_gradient2(
+    low = "#4575b4",   # Blue for negative correlations
+    mid = "#f7f7f7",   # White for neutral correlations
+    high = "#d73027",  # Red for positive correlations
+    midpoint = 0,      # Neutral midpoint
+    limits = c(-1, 1), # Scale from -1 to 1
+    breaks = seq(-1, 1, by = 0.5),  # Define legend breaks
+    guide = guide_colorbar(
+      title = "Pearson Correlation",
+      title.position = "right",
+      barheight = unit(8.7, "cm")
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
+  ) +
+  labs(
+    title = "Correlations Between 2's and Other Groups Across Skills",
+    x = "Comparison Group",
+    y = "Skill"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for readability
+    axis.text.y = element_text(vjust = 0.5),
+    panel.grid = element_blank()  # Remove gridlines
+  )
+
+# Print the heatmap
+print(heatmap_plot)
+
+
+```
+# Calculate correlations against 3s (L2)
+```{r}
+# Compute Correlations for (3 vs 1), (3 vs 2), (3 vs 4), ..., (3 vs 10)
+corr_results_3s <- bind_rows(
+  compute_skill_correlations(grouped_means[["3"]], grouped_means[["1"]],  "3s", "1s"),
+  compute_skill_correlations(grouped_means[["3"]], grouped_means[["2"]],  "3s", "2s"),
+  compute_skill_correlations(grouped_means[["3"]], grouped_means[["4"]],  "3s", "4s"),
+  compute_skill_correlations(grouped_means[["3"]], grouped_means[["5"]],  "3s", "5s"),
+  compute_skill_correlations(grouped_means[["3"]], grouped_means[["6"]],  "3s", "6s"),
+  compute_skill_correlations(grouped_means[["3"]], grouped_means[["7"]],  "3s", "7s"),
+  compute_skill_correlations(grouped_means[["3"]], grouped_means[["8"]],  "3s", "8s"),
+  compute_skill_correlations(grouped_means[["3"]], grouped_means[["9"]],  "3s", "9s"),
+  compute_skill_correlations(grouped_means[["3"]], grouped_means[["10"]], "3s", "10s")
+)
+
+# Print correlation results to console
+print(corr_results_3s)
+
+# Heatmap Visualisation of Correlations
+# Prepare data for heatmap
+heatmap_data_3s <- corr_results_3s %>%
+  mutate(
+    comparison = gsub("3s_vs_", "", comparison),  # Simplify comparison labels
+    skill = recode(skill, "Skill1" = "Skill 1", "Skill2" = "Skill 2", "Skill3" = "Skill 3"),
+    comparison = factor(comparison, levels = c("1s", "2s", "4s", "5s", "6s", "7s", "8s", "9s", "10s"))
+  )
+
+# Create the heatmap
+heatmap_plot_3s <- ggplot(heatmap_data_3s, aes(x = comparison, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
+  geom_tile() +  # Create the heatmap tiles
+  geom_text(size = 3) +  # Add Pearson's r as text in the tiles
+  scale_fill_gradient2(
+    low = "#4575b4",   # Blue for negative correlations
+    mid = "#f7f7f7",   # White for neutral correlations
+    high = "#d73027",  # Red for positive correlations
+    midpoint = 0,      # Neutral midpoint
+    limits = c(-1, 1), # Scale from -1 to 1
+    breaks = seq(-1, 1, by = 0.5),  # Define legend breaks
+    guide = guide_colorbar(
+      title = "Pearson Correlation",
+      title.position = "right",
+      barheight = unit(8.7, "cm")
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
+  ) +
+  labs(
+    title = "Correlations Between 3's and Other Groups Across Skills",
+    x = "Comparison Group",
+    y = "Skill"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for readability
+    axis.text.y = element_text(vjust = 0.5),
+    panel.grid = element_blank()  # Remove gridlines
+  )
+
+# Print the heatmap
+print(heatmap_plot_3s)
+```
+# Calculate correlations against 1s (L2)
+```{r}
+# Compute Correlations for (1 vs 2), (1 vs 3), (1 vs 4), ..., (1 vs 10)
+corr_results_1s <- bind_rows(
+  compute_skill_correlations(grouped_means[["1"]], grouped_means[["2"]],  "1s", "2s"),
+  compute_skill_correlations(grouped_means[["1"]], grouped_means[["3"]],  "1s", "3s"),
+  compute_skill_correlations(grouped_means[["1"]], grouped_means[["4"]],  "1s", "4s"),
+  compute_skill_correlations(grouped_means[["1"]], grouped_means[["5"]],  "1s", "5s"),
+  compute_skill_correlations(grouped_means[["1"]], grouped_means[["6"]],  "1s", "6s"),
+  compute_skill_correlations(grouped_means[["1"]], grouped_means[["7"]],  "1s", "7s"),
+  compute_skill_correlations(grouped_means[["1"]], grouped_means[["8"]],  "1s", "8s"),
+  compute_skill_correlations(grouped_means[["1"]], grouped_means[["9"]],  "1s", "9s"),
+  compute_skill_correlations(grouped_means[["1"]], grouped_means[["10"]], "1s", "10s")
+)
+
+# Print correlation results to console
+print(corr_results_1s)
+
+# Heatmap Visualisation of Correlations
+# Prepare data for heatmap
+heatmap_data_1s <- corr_results_1s %>%
+  mutate(
+    comparison = gsub("1s_vs_", "", comparison),  # Simplify comparison labels
+    skill = recode(skill, "Skill1" = "Skill 1", "Skill2" = "Skill 2", "Skill3" = "Skill 3"),
+    comparison = factor(comparison, levels = c("2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s"))
+  )
+
+# Create the heatmap
+heatmap_plot_1s <- ggplot(heatmap_data_1s, aes(x = comparison, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
+  geom_tile() +  # Create the heatmap tiles
+  geom_text(size = 3) +  # Add Pearson's r as text in the tiles
+  scale_fill_gradient2(
+    low = "#4575b4",   # Blue for negative correlations
+    mid = "#f7f7f7",   # White for neutral correlations
+    high = "#d73027",  # Red for positive correlations
+    midpoint = 0,      # Neutral midpoint
+    limits = c(-1, 1), # Scale from -1 to 1
+    breaks = seq(-1, 1, by = 0.5),  # Define legend breaks
+    guide = guide_colorbar(
+      title = "Pearson Correlation",
+      title.position = "right",
+      barheight = unit(8.7, "cm")
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
+  ) +
+  labs(
+    title = "Correlations Between 1's and Other Groups Across Skills",
+    x = "Comparison Group",
+    y = "Skill"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for readability
+    axis.text.y = element_text(vjust = 0.5),
+    panel.grid = element_blank()  # Remove gridlines
+  )
+
+# Print the heatmap
+print(heatmap_plot_1s)
+```
+# GT Descriptive Stats
+```{r}
+compute_skill_correlation <- function(encounter_list, skill_count, title_label) {
+  # Combine all encounters and calculate mean for each skill
+  mean_skills <- map(encounter_list, ~ select(., num_range("skill", 1:skill_count))) %>%
+    reduce(`+`) / length(encounter_list)
+  
+  # Compute correlation matrix
+  corr_mat <- cor(mean_skills, use = "complete.obs")
+  
+  # Create plot
+  ggcorrplot(corr_mat,
+             type = "lower",
+             lab = TRUE,
+             title = paste(skill_count, "-Skill Correlation"),
+             ggtheme = theme_minimal(),
+             colors = c("#4575b4", "#f7f7f7", "#d73027")) +
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+# Calculate mean correlations for 3 skills across all encounters
+plot_3_overall <- compute_skill_correlation(
+  encounter_list = list(s3l2first, s3l2middle, s3l2last),
+  skill_count = 3
+)
+
+# Calculate mean correlations for 4 skills across all encounters
+plot_4_overall <- compute_skill_correlation(
+  encounter_list = list(s4l2first, s4l2middle, s4l2last),
+  skill_count = 4
+)
+
+# Calculate mean correlations for 5 skills across all encounters
+plot_5_overall <- compute_skill_correlation(
+  encounter_list = list(s5l2first, s5l2middle, s5l2last),
+  skill_count = 5
+)
+
+# Calculate mean correlations for 6 skills across all encounters
+plot_6_overall <- compute_skill_correlation(
+  encounter_list = list(s6l2first, s6l2middle, s6l2last),
+  skill_count = 6
+)
+
+# Print the combined plots
+print(plot_3_overall)
+print(plot_4_overall)
+print(plot_5_overall)
+print(plot_6_overall)
 ```
