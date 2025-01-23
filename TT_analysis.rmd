@@ -27,12 +27,12 @@ dat <- dat %>%
     cue_text = str_replace_all(cue_text, "\\+", " ") # Replace "+" with a space
   )
 
-# Define valid responses (numeric values ≤ 100)
-valid_responses <- 0:100
-
-# Filter for valid 'given_response'
-dat <- dat %>%
-  filter(as.numeric(given_response) %in% valid_responses)
+# # Define valid responses (numeric values ≤ 100)
+# valid_responses <- 0:100
+# 
+# # Filter for valid 'given_response'
+# dat <- dat %>%
+#   filter(as.numeric(given_response) %in% valid_responses)
 
 # Add multiplier and multiplicand columns globally to the dataset
 dat <- dat %>%
@@ -129,7 +129,6 @@ export_graaftel_data(dat_level3_finishers_last, 3, "last")
 ```
 
 # Verify Outputs
-
 ```{r}
 # Prepare data for verification
 # Combine all levels and encounter types to verify overall distribution
@@ -176,7 +175,38 @@ mean_accuracy_data %>%
   scale_fill_brewer(palette = "Set3") +
   theme(legend.position = "none")
 ```
+# Generate Data for Heatmaps
+```{r}
+# Function to generate descriptive statistics for heatmap
+generate_descriptive_data <- function(data) {
+  data %>%
+    group_by(multiplier, multiplicand) %>%
+    summarise(
+      mean_acc = mean(correct, na.rm = TRUE), # Calculate mean accuracy
+      n = n(), # Count number of observations
+      se = sd(correct, na.rm = TRUE) / sqrt(n()), # Calculate standard error
+      .groups = "drop"
+    )
+}
 
+# Generate `dat4plot` datasets for overall statistics (all encounters combined) per level
+dat4plot_level1 <- generate_descriptive_data(dat_level1)
+dat4plot_level2 <- generate_descriptive_data(dat_level2)
+dat4plot_level3 <- generate_descriptive_data(dat_level3)
+
+# Generate `dat4plot` datasets for each level and encounter
+dat4plot_level1_first <- generate_descriptive_data(dat_level1_first)
+dat4plot_level1_middle <- generate_descriptive_data(dat_level1_middle)
+dat4plot_level1_last <- generate_descriptive_data(dat_level1_last)
+
+dat4plot_level2_first <- generate_descriptive_data(dat_level2_first)
+dat4plot_level2_middle <- generate_descriptive_data(dat_level2_middle)
+dat4plot_level2_last <- generate_descriptive_data(dat_level2_last)
+
+dat4plot_level3_first <- generate_descriptive_data(dat_level3_first)
+dat4plot_level3_middle <- generate_descriptive_data(dat_level3_middle)
+dat4plot_level3_last <- generate_descriptive_data(dat_level3_last)
+```
 # Descriptive Statistics
 ```{r}
 df_heatmaps <- bind_rows(
@@ -227,9 +257,9 @@ heatmap_facet <- ggplot(df_heatmaps,
   geom_tile() +
   geom_text(size = 1) +
   scale_fill_gradient2(
-    limits = c(0.7, 1),
-    midpoint = 0.85,
-    low = '#f7f7f7',
+    limits = c(0.5, 1),
+    midpoint = 0.75,
+    low = '#4575b4',
     high = '#d73027',
     guide = guide_colorbar(
       title = "Mean Accuracy", 
@@ -238,7 +268,7 @@ heatmap_facet <- ggplot(df_heatmaps,
       barheight = unit(8, "cm")
     ),
     aesthetics = 'fill',
-    breaks = seq(0.7, 1, by = 0.05)
+    breaks = seq(0.5, 1, by = 0.05)
   ) +
   facet_wrap(~ facet_label, ncol = 4) +  # Adjust ncol as desired
   theme_minimal() +
