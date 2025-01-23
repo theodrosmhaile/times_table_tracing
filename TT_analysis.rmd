@@ -229,13 +229,12 @@ heatmap_facet <- ggplot(df_heatmaps,
   scale_fill_gradient2(
     limits = c(0.7, 1),
     midpoint = 0.85,
-    low = '#4575b4',
-    mid = '#f7f7f7',
+    low = '#f7f7f7',
     high = '#d73027',
     guide = guide_colorbar(
       title = "Mean Accuracy", 
       title.position = "right", 
-      title.theme = element_text(angle = 90, hjust = 0.5),
+      title.theme = element_text(angle = 90, hjust = 0.5, size = 14), # Adjust legend title size
       barheight = unit(8, "cm")
     ),
     aesthetics = 'fill',
@@ -244,18 +243,22 @@ heatmap_facet <- ggplot(df_heatmaps,
   facet_wrap(~ facet_label, ncol = 4) +  # Adjust ncol as desired
   theme_minimal() +
   labs(
-    title = "Heatmaps of Mean Accuracy",
+    title = "Mean Accuracy Across Levels and Encounters",
     x = "Multiplier",
     y = "Multiplicand"
   ) +
   theme(
-    axis.text.x = element_text(size = 8),
-    axis.text.y = element_text(size = 8),
-    legend.title = element_text(angle = 90, hjust = 0.5), 
-    legend.key.height = unit(0.5, "cm")
+    axis.text.x = element_text(size = 8),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 8),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 14),                # X-axis label size
+    axis.title.y = element_text(size = 14),                # Y-axis label size
+    legend.title = element_text(size = 14),                # Legend title size
+    legend.key.height = unit(2, "cm"),                     # Legend key height
+    plot.title = element_text(size = 16, hjust = 0.5),     # Title size and centering
+    strip.text = element_text(size = 12)                   # Facet label size
   )
 
-# Print the faceted heatmap
+# Print the plot
 print(heatmap_facet)
 
 barplot_level1
@@ -562,7 +565,7 @@ correlation_results <- correlation_results %>%
 # Plot Pearson's r for all levels and encounters using a facet grid
 ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
   geom_tile() +
-  geom_text() +
+  geom_text(size = 6) + # Adjust text inside tiles
   facet_wrap(vars(level)) +
   scale_fill_gradient2(
     limits = c(-1, 1),
@@ -571,22 +574,31 @@ ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, lab
     mid = '#f7f7f7',
     high = '#d73027',
     guide = guide_colorbar(
-      title = "Pearson Correlation",
-      title.position = "right",
-      barheight = unit(8.4, "cm")  # Adjust legend height
+      title = "Pearson Correlation", 
+      title.position = "right", 
+      title.theme = element_text(angle = 90, hjust = 0.5, size = 14), # Rotate and adjust legend title size
+      barheight = unit(8, "cm") # Adjust legend bar height
     ),
     aesthetics = 'fill',
-    breaks = c(-1, -0.5, 0, 0.5, 1), # Set legend breaks to -1, 0, and 1
+    breaks = c(-1, -0.5, 0, 0.5, 1) # Set legend breaks to -1, -0.5, 0, 0.5, 1
   ) +
   theme_minimal() +
-  theme(
-    legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
-  ) +
   labs(
     title = "Skill Probabilities vs Mean Reaction Time Across Levels and Encounters",
-    x = "Level",
+    x = "Encounter",
     y = "Skill"
+  ) +
+  theme(
+    axis.text.x = element_text(size = 10),                  # X-axis tick labels
+    axis.text.y = element_text(size = 10),                  # Y-axis tick labels
+    axis.title.x = element_text(size = 14),                 # X-axis label size
+    axis.title.y = element_text(size = 14),                 # Y-axis label size
+    legend.title = element_text(size = 14),                 # Legend title size
+    legend.key.height = unit(2, "cm"),                      # Legend key height
+    plot.title = element_text(size = 14, hjust = 0.5),      # Title size and centering
+    strip.text = element_text(size = 12)                    # Facet label size
   )
+
 ```
 # Check whether any students have not done level 3 problems
 ```{r}
@@ -700,7 +712,7 @@ alpha_correlation_results <- alpha_correlation_results %>%
 # Plot Pearson's r for Level 2 skills and Level 3 memory decay rates using a facet grid
 ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
   geom_tile() +
-  geom_text() +
+  geom_text(size = 6) +
   scale_fill_gradient2(
     limits = c(-1, 1),
     midpoint = 0,
@@ -710,14 +722,21 @@ ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_
     guide = guide_colorbar(
       title = "Pearson Correlation",
       title.position = "right",
-      barheight = unit(9, "cm")
+      barheight = unit(8.9, "cm")
     ),
     aesthetics = 'fill',
     breaks = c(-1, -0.5, 0, 0.5, 1),
   ) +
   theme_minimal() +
   theme(
-    legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
+    legend.title = element_text(angle = 90, hjust = 0.5, size = 14),
+    axis.text.x = element_text(size = 8),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 8),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 14),                # X-axis label size
+    axis.title.y = element_text(size = 14),                # Y-axis label size
+    legend.key.height = unit(2, "cm"),                     # Legend key height
+    plot.title = element_text(size = 14, hjust = 0.5),     # Title size and centering
+    strip.text = element_text(size = 12)                   # Facet label size
   ) +
   labs(
     title = "Level 1 Skills vs Level 3 Memory Decay Rates (α) Across Encounters",
@@ -822,10 +841,13 @@ heatmap_data <- corr_results %>%
     comparison = factor(comparison, levels = c("1s", "3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s"))
   )
 
+heatmap_data <- heatmap_data %>%
+  mutate(skill = as.numeric(str_extract(skill, "\\d+")))  # Extract the numeric part of 'Skill 1', 'Skill 2', etc.
+
 # Create the heatmap
 heatmap_plot <- ggplot(heatmap_data, aes(x = comparison, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
   geom_tile() +  # Create the heatmap tiles
-  geom_text(size = 3) +  # Add Pearson's r as text in the tiles
+  geom_text(size = 5) +  # Add Pearson's r as text in the tiles
   scale_fill_gradient2(
     low = "#4575b4",   # Blue for negative correlations
     mid = "#f7f7f7",   # White for neutral correlations
@@ -834,9 +856,10 @@ heatmap_plot <- ggplot(heatmap_data, aes(x = comparison, y = skill, fill = pears
     limits = c(-1, 1), # Scale from -1 to 1
     breaks = seq(-1, 1, by = 0.5),  # Define legend breaks
     guide = guide_colorbar(
-      title = "Pearson Correlation",
-      title.position = "right",
-      barheight = unit(8.7, "cm")
+      title = "Pearson Correlation", # Define legend title
+      title.position = "right",      # Position legend title
+      title.theme = element_text(angle = 90, hjust = 0.5, size = 14), # Rotate and style the legend title
+      barheight = unit(8.4, "cm")    # Adjust legend bar height
     )
   ) +
   theme_minimal() +
@@ -849,9 +872,13 @@ heatmap_plot <- ggplot(heatmap_data, aes(x = comparison, y = skill, fill = pears
     y = "Skill"
   ) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for readability
-    axis.text.y = element_text(vjust = 0.5),
-    panel.grid = element_blank()  # Remove gridlines
+    axis.text.x = element_text(size = 12),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 12),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 14),                # X-axis label size
+    axis.title.y = element_text(size = 14),                # Y-axis label size
+    legend.key.height = unit(2, "cm"),                     # Legend key height
+    plot.title = element_text(size = 16, hjust = 0.5),     # Title size and centering
+    panel.grid = element_blank()                           # Remove gridlines
   )
 
 # Print the heatmap
@@ -886,10 +913,13 @@ heatmap_data_3s <- corr_results_3s %>%
     comparison = factor(comparison, levels = c("1s", "2s", "4s", "5s", "6s", "7s", "8s", "9s", "10s"))
   )
 
+heatmap_data_3s <- heatmap_data_3s %>%
+  mutate(skill = as.numeric(str_extract(skill, "\\d+")))
+
 # Create the heatmap
 heatmap_plot_3s <- ggplot(heatmap_data_3s, aes(x = comparison, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
   geom_tile() +  # Create the heatmap tiles
-  geom_text(size = 3) +  # Add Pearson's r as text in the tiles
+  geom_text(size = 5) +  # Add Pearson's r as text in the tiles
   scale_fill_gradient2(
     low = "#4575b4",   # Blue for negative correlations
     mid = "#f7f7f7",   # White for neutral correlations
@@ -898,9 +928,10 @@ heatmap_plot_3s <- ggplot(heatmap_data_3s, aes(x = comparison, y = skill, fill =
     limits = c(-1, 1), # Scale from -1 to 1
     breaks = seq(-1, 1, by = 0.5),  # Define legend breaks
     guide = guide_colorbar(
-      title = "Pearson Correlation",
-      title.position = "right",
-      barheight = unit(8.7, "cm")
+      title = "Pearson Correlation", # Define legend title
+      title.position = "right",      # Position legend title
+      title.theme = element_text(angle = 90, hjust = 0.5, size = 14), # Rotate and style the legend title
+      barheight = unit(8.4, "cm")    # Adjust legend bar height
     )
   ) +
   theme_minimal() +
@@ -913,9 +944,13 @@ heatmap_plot_3s <- ggplot(heatmap_data_3s, aes(x = comparison, y = skill, fill =
     y = "Skill"
   ) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for readability
-    axis.text.y = element_text(vjust = 0.5),
-    panel.grid = element_blank()  # Remove gridlines
+    axis.text.x = element_text(size = 12),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 12),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 14),                # X-axis label size
+    axis.title.y = element_text(size = 14),                # Y-axis label size
+    legend.key.height = unit(2, "cm"),                     # Legend key height
+    plot.title = element_text(size = 16, hjust = 0.5),     # Title size and centering
+    panel.grid = element_blank()
   )
 
 # Print the heatmap
@@ -948,10 +983,13 @@ heatmap_data_1s <- corr_results_1s %>%
     comparison = factor(comparison, levels = c("2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s", "10s"))
   )
 
-# Create the heatmap
+heatmap_data_1s <- heatmap_data_1s %>%
+  mutate(skill = as.numeric(str_extract(skill, "\\d+")))  # Extract the numeric part of 'Skill 1', 'Skill 2', etc.
+
+# Plot with updated y-axis
 heatmap_plot_1s <- ggplot(heatmap_data_1s, aes(x = comparison, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
   geom_tile() +  # Create the heatmap tiles
-  geom_text(size = 3) +  # Add Pearson's r as text in the tiles
+  geom_text(size = 5) +  # Add Pearson's r as text in the tiles
   scale_fill_gradient2(
     low = "#4575b4",   # Blue for negative correlations
     mid = "#f7f7f7",   # White for neutral correlations
@@ -960,24 +998,26 @@ heatmap_plot_1s <- ggplot(heatmap_data_1s, aes(x = comparison, y = skill, fill =
     limits = c(-1, 1), # Scale from -1 to 1
     breaks = seq(-1, 1, by = 0.5),  # Define legend breaks
     guide = guide_colorbar(
-      title = "Pearson Correlation",
-      title.position = "right",
-      barheight = unit(8.7, "cm")
+      title = "Pearson Correlation", # Define legend title
+      title.position = "right",      # Position legend title
+      title.theme = element_text(angle = 90, hjust = 0.5, size = 14), # Rotate and style the legend title
+      barheight = unit(8.4, "cm")    # Adjust legend bar height
     )
   ) +
   theme_minimal() +
   theme(
-    legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
+    axis.text.x = element_text(size = 12),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 12),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 14),                # X-axis label size
+    axis.title.y = element_text(size = 14),                # Y-axis label size
+    legend.key.height = unit(2, "cm"),                     # Legend key height
+    plot.title = element_text(size = 16, hjust = 0.5),     # Title size and centering
+    panel.grid = element_blank()                           # Remove gridlines
   ) +
   labs(
     title = "Correlations Between 1's and Other Groups Across Skills",
     x = "Comparison Group",
     y = "Skill"
-  ) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels for readability
-    axis.text.y = element_text(vjust = 0.5),
-    panel.grid = element_blank()  # Remove gridlines
   )
 
 # Print the heatmap
@@ -985,7 +1025,7 @@ print(heatmap_plot_1s)
 ```
 # GT Descriptive Stats
 ```{r}
-compute_skill_correlation <- function(encounter_list, skill_count, title_label) {
+compute_skill_correlation <- function(encounter_list, skill_count) {
   # Combine all encounters and calculate mean for each skill
   mean_skills <- map(encounter_list, ~ select(., num_range("skill", 1:skill_count))) %>%
     reduce(`+`) / length(encounter_list)
@@ -993,41 +1033,58 @@ compute_skill_correlation <- function(encounter_list, skill_count, title_label) 
   # Compute correlation matrix
   corr_mat <- cor(mean_skills, use = "complete.obs")
   
-  # Create plot
+  # Rename rows and columns of the correlation matrix
+  rownames(corr_mat) <- 1:skill_count
+  colnames(corr_mat) <- 1:skill_count
+  
+  # Create plot using ggcorrplot
   ggcorrplot(corr_mat,
              type = "lower",
              lab = TRUE,
              title = paste(skill_count, "-Skill Correlation"),
              ggtheme = theme_minimal(),
-             colors = c("#4575b4", "#f7f7f7", "#d73027")) +
-    theme(plot.title = element_text(hjust = 0.5))
+             colors = c("#4575b4", "#f7f7f7", "#d73027"),
+             legend.title = "Pearson Correlation") +  # Explicit legend title
+    labs(
+      x = "Skill",                   
+      y = "Skill"                   
+    ) +
+    theme(
+      axis.text.x = element_text(size = 12, angle = 0, vjust = 0.5),
+      axis.text.y = element_text(size = 12),                 
+      axis.title.x = element_text(size = 14),                
+      axis.title.y = element_text(size = 14, angle = 90),    
+      legend.title = element_text(size = 14, angle = 90, vjust = 0.5, hjust = 0.5),
+      legend.text = element_text(size = 12, angle = 0),                
+      legend.key.height = unit(1.5, "cm"),                   
+      legend.position = "right",
+      plot.title = element_text(size = 16, hjust = 0.5)      
+    ) +
+    guides(fill = guide_colorbar(title.position = "right",
+                                 title.hjust = 0.5,
+                                 barheight = unit(1.5, "cm"),
+                                 frame.colour = "black",
+                                 ticks.colour = "black"))
 }
 
-# Calculate mean correlations for 3 skills across all encounters
+# Calculate mean correlations for 3-6 skills across all encounters
 plot_3_overall <- compute_skill_correlation(
-  encounter_list = list(s3l2first, s3l2middle, s3l2last),
-  skill_count = 3
+  list(s3l2first, s3l2middle, s3l2last), 3
 )
 
-# Calculate mean correlations for 4 skills across all encounters
 plot_4_overall <- compute_skill_correlation(
-  encounter_list = list(s4l2first, s4l2middle, s4l2last),
-  skill_count = 4
+  list(s4l2first, s4l2middle, s4l2last), 4
 )
 
-# Calculate mean correlations for 5 skills across all encounters
 plot_5_overall <- compute_skill_correlation(
-  encounter_list = list(s5l2first, s5l2middle, s5l2last),
-  skill_count = 5
+  list(s5l2first, s5l2middle, s5l2last), 5
 )
 
-# Calculate mean correlations for 6 skills across all encounters
 plot_6_overall <- compute_skill_correlation(
-  encounter_list = list(s6l2first, s6l2middle, s6l2last),
-  skill_count = 6
+  list(s6l2first, s6l2middle, s6l2last), 6
 )
 
-# Print the combined plots
+# Print the plots
 print(plot_3_overall)
 print(plot_4_overall)
 print(plot_5_overall)
