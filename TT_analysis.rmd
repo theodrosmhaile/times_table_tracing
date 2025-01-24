@@ -27,12 +27,12 @@ dat <- dat %>%
     cue_text = str_replace_all(cue_text, "\\+", " ") # Replace "+" with a space
   )
 
-# # Define valid responses (numeric values ≤ 100)
-# valid_responses <- 0:100
-# 
-# # Filter for valid 'given_response'
-# dat <- dat %>%
-#   filter(as.numeric(given_response) %in% valid_responses)
+# Define valid responses (numeric values ≤ 100)
+valid_responses <- 0:100
+
+# Filter for valid 'given_response'
+dat <- dat %>%
+  filter(as.numeric(given_response) %in% valid_responses)
 
 # Add multiplier and multiplicand columns globally to the dataset
 dat <- dat %>%
@@ -104,28 +104,28 @@ export_graaftel_data <- function(data, level, encounter_type) {
   write.table(data_to_export, file_name, row.names = FALSE, col.names = FALSE, sep = ",")
 }
 
-# # Export data for Level 1
-# export_graaftel_data(dat_level1_first, 1, "first")
-# export_graaftel_data(dat_level1_middle, 1, "middle")
-# export_graaftel_data(dat_level1_last, 1, "last")
-# 
-# # Export data for Level 2
-# export_graaftel_data(dat_level2_first, 2, "first")
-# export_graaftel_data(dat_level2_middle, 2, "middle")
-# export_graaftel_data(dat_level2_last, 2, "last")
-# 
-# # Export data for Level 3
-# export_graaftel_data(dat_level3_first, 3, "first")
-# export_graaftel_data(dat_level3_middle, 3, "middle")
-# export_graaftel_data(dat_level3_last, 3, "last")
+# Export data for Level 1
+export_graaftel_data(dat_level1_first, 1, "first")
+export_graaftel_data(dat_level1_middle, 1, "middle")
+export_graaftel_data(dat_level1_last, 1, "last")
 
-export_graaftel_data(dat_level1_finishers_first, 1, "first")
-export_graaftel_data(dat_level1_finishers_middle, 1, "middle")
-export_graaftel_data(dat_level1_finishers_last, 1, "last")
+# Export data for Level 2
+export_graaftel_data(dat_level2_first, 2, "first")
+export_graaftel_data(dat_level2_middle, 2, "middle")
+export_graaftel_data(dat_level2_last, 2, "last")
 
-export_graaftel_data(dat_level3_finishers_first, 3, "first")
-export_graaftel_data(dat_level3_finishers_middle, 3, "middle")
-export_graaftel_data(dat_level3_finishers_last, 3, "last")
+# Export data for Level 3
+export_graaftel_data(dat_level3_first, 3, "first")
+export_graaftel_data(dat_level3_middle, 3, "middle")
+export_graaftel_data(dat_level3_last, 3, "last")
+
+# export_graaftel_data(dat_level1_finishers_first, 1, "first")
+# export_graaftel_data(dat_level1_finishers_middle, 1, "middle")
+# export_graaftel_data(dat_level1_finishers_last, 1, "last")
+# 
+# export_graaftel_data(dat_level3_finishers_first, 3, "first")
+# export_graaftel_data(dat_level3_finishers_middle, 3, "middle")
+# export_graaftel_data(dat_level3_finishers_last, 3, "last")
 ```
 
 # Verify Outputs
@@ -259,8 +259,9 @@ heatmap_facet <- ggplot(df_heatmaps,
   scale_fill_gradient2(
     limits = c(0.5, 1),
     midpoint = 0.75,
-    low = '#4575b4',
-    high = '#d73027',
+    low = 'blue',
+    mid = 'red',
+    high = 'yellow',
     guide = guide_colorbar(
       title = "Mean Accuracy", 
       title.position = "right", 
