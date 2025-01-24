@@ -27,12 +27,12 @@ dat <- dat %>%
     cue_text = str_replace_all(cue_text, "\\+", " ") # Replace "+" with a space
   )
 
-# Define valid responses (numeric values ≤ 100)
-valid_responses <- 0:100
-
-# Filter for valid 'given_response'
-dat <- dat %>%
-  filter(as.numeric(given_response) %in% valid_responses)
+# # Define valid responses (numeric values ≤ 100)
+# valid_responses <- 0:100
+# 
+# # Filter for valid 'given_response'
+# dat <- dat %>%
+#   filter(as.numeric(given_response) %in% valid_responses)
 
 # Add multiplier and multiplicand columns globally to the dataset
 dat <- dat %>%
@@ -140,21 +140,21 @@ verify_data <- bind_rows(
 
 # Plot histogram for the distribution of responses
 # Ensures that the data used for GraafTel matches expected values
-verify_data %>%
-  select(given_response, cue_text, level) %>%
-  filter(given_response %in% 0:100) %>%
-  mutate(given_response = as.numeric(given_response)) %>%
-  ggplot(aes(x = given_response, fill = factor(level))) +
-  geom_histogram(binwidth = 1, position = "dodge") +
-  theme_minimal() +
-  labs(
-    title = "Distribution of Responses Across Levels",
-    x = "Given Response",
-    y = "Count",
-    fill = "Level"
-  ) +
-  theme(axis.text.x = element_text(angle = 90)) +
-  scale_fill_brewer(palette = "Set3")
+# verify_data %>%
+#   select(given_response, cue_text, level) %>%
+#   filter(given_response %in% 0:100) %>%
+#   mutate(given_response = as.numeric(given_response)) %>%
+#   ggplot(aes(x = given_response, fill = factor(level))) +
+#   geom_histogram(binwidth = 1, position = "dodge") +
+#   theme_minimal() +
+#   labs(
+#     title = "Distribution of Responses Across Levels",
+#     x = "Given Response",
+#     y = "Count",
+#     fill = "Level"
+#   ) +
+#   theme(axis.text.x = element_text(angle = 90)) +
+#   scale_fill_brewer(palette = "Set3")
 
 # Calculate mean accuracy for each fact_id and level
 mean_accuracy_data <- verify_data %>%
@@ -180,7 +180,7 @@ mean_accuracy_data %>%
 # Function to generate descriptive statistics for heatmap
 generate_descriptive_data <- function(data) {
   data %>%
-    group_by(multiplier, multiplicand) %>%
+    group_by(cue_text, multiplier, multiplicand) %>%
     summarise(
       mean_acc = mean(correct, na.rm = TRUE), # Calculate mean accuracy
       n = n(), # Count number of observations
@@ -244,8 +244,14 @@ df_heatmaps <- df_heatmaps %>%
         "Level 3: Middle", 
         "Level 3: Last", 
         "Level 3: Overall"
-      )
+      ),
     )
+  )
+
+df_heatmaps <- df_heatmaps %>%
+  mutate(
+    multiplier = as.factor(multiplier),
+    multiplicand = as.factor(multiplicand)
   )
 
 # Plot the heatmap
@@ -269,7 +275,7 @@ heatmap_facet <- ggplot(df_heatmaps,
       barheight = unit(8, "cm")
     ),
     aesthetics = 'fill',
-    breaks = seq(0.5, 1, by = 0.05)
+    breaks = seq(0.5, 1, by = 0.1)
   ) +
   facet_wrap(~ facet_label, ncol = 4) +  # Adjust ncol as desired
   theme_minimal() +
@@ -289,21 +295,60 @@ heatmap_facet <- ggplot(df_heatmaps,
     strip.text = element_text(size = 12)                   # Facet label size
   )
 
+# Function to plot bar plots with error bars
+plot_barplot <- function(dat, title) {
+  dat <- dat %>%
+    mutate(cue_text = as.factor(cue_text)) # Ensure cue_text is a factor
+
+  dat %>%
+    ggplot(aes(
+      x = cue_text, y = mean_acc, ymax = mean_acc + se, ymin = mean_acc - se, fill = as.factor(multiplicand)
+    )) +
+    geom_bar(stat = 'identity') +
+    geom_errorbar() +
+    scale_x_discrete(
+      breaks = levels(dat$cue_text)[seq(1, length(levels(dat$cue_text)), by = 10)] # Show every 10th label correctly
+    ) +
+    theme_minimal() +
+    labs(
+      title = title,
+      x = "Cue Text (Multiplication Fact)",
+      y = "Mean Accuracy",
+      fill = "Multiplicand"
+    ) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.position = 'top')
+}
+
+
 # Print the plot
 print(heatmap_facet)
 
-barplot_level1
-barplot_level1_first
-barplot_level1_middle
-barplot_level1_last
-barplot_level2
-barplot_level2_first
-barplot_level2_middle
-barplot_level2_last
-barplot_level3
-barplot_level3_first
-barplot_level3_middle
-barplot_level3_last
+# # Bar Plots
+# barplot_level1 <- plot_barplot(dat4plot_level1, "Bar Plot of Mean Accuracy (Level 1: Overall)")
+# barplot_level1_first <- plot_barplot(dat4plot_level1_first, "Bar Plot of Mean Accuracy (Level 1: First)")
+# barplot_level1_middle <- plot_barplot(dat4plot_level1_middle, "Bar Plot of Mean Accuracy (Level 1: Middle)")
+# barplot_level1_last <- plot_barplot(dat4plot_level1_last, "Bar Plot of Mean Accuracy (Level 1: Last)")
+# barplot_level2 <- plot_barplot(dat4plot_level2, "Bar Plot of Mean Accuracy (Level 2: Overall)")
+# barplot_level2_first <- plot_barplot(dat4plot_level2_first, "Bar Plot of Mean Accuracy (Level 2: First)")
+# barplot_level2_middle <- plot_barplot(dat4plot_level2_middle, "Bar Plot of Mean Accuracy (Level 2: Middle)")
+# barplot_level2_last <- plot_barplot(dat4plot_level2_last, "Bar Plot of Mean Accuracy (Level 2: Last)")
+# barplot_level3 <- plot_barplot(dat4plot_level3, "Bar Plot of Mean Accuracy (Level 3: Overall)")
+# barplot_level3_first <- plot_barplot(dat4plot_level3_first, "Bar Plot of Mean Accuracy (Level 3: First)")
+# barplot_level3_middle <- plot_barplot(dat4plot_level3_middle, "Bar Plot of Mean Accuracy (Level 3: Middle)")
+# barplot_level3_last <- plot_barplot(dat4plot_level3_last, "Bar Plot of Mean Accuracy (Level 3: Last)")
+# 
+# barplot_level1
+# barplot_level1_first
+# barplot_level1_middle
+# barplot_level1_last
+# barplot_level2
+# barplot_level2_first
+# barplot_level2_middle
+# barplot_level2_last
+# barplot_level3
+# barplot_level3_first
+# barplot_level3_middle
+# barplot_level3_last
 ```
 
 # GraafTel Data Export Analysis
