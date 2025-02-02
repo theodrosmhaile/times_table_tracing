@@ -16,6 +16,7 @@ library(dplyr)
 This analysis prepares data from Levels 1, 2, and 3 of the TafelTrainer dataset. The goal is to create datasets for GraafTel input (first, middle, and last encounters) and conduct descriptive analyses.
 
 # Data Preparation
+
 ```{r}
 # Load dataset
 dat <- readRDS('./TT_data/tt_responses_all_clean.rds')
@@ -91,7 +92,9 @@ dat_level3_first <- filter_encounter(dat_level3, "first")
 dat_level3_middle <- filter_encounter(dat_level3, "middle")
 dat_level3_last <- filter_encounter(dat_level3, "last")
 ```
+
 # Export Data for GraafTel
+
 ```{r}
 # Function to export datasets
 export_graaftel_data <- function(data, level, encounter_type) {
@@ -119,16 +122,17 @@ export_graaftel_data <- function(data, level, encounter_type) {
 # export_graaftel_data(dat_level3_middle, 3, "middle")
 # export_graaftel_data(dat_level3_last, 3, "last")
 
-export_graaftel_data(dat_level1_finishers_first, 1, "first")
-export_graaftel_data(dat_level1_finishers_middle, 1, "middle")
-export_graaftel_data(dat_level1_finishers_last, 1, "last")
-
-export_graaftel_data(dat_level3_finishers_first, 3, "first")
-export_graaftel_data(dat_level3_finishers_middle, 3, "middle")
-export_graaftel_data(dat_level3_finishers_last, 3, "last")
+# export_graaftel_data(dat_level1_finishers_first, 1, "first")
+# export_graaftel_data(dat_level1_finishers_middle, 1, "middle")
+# export_graaftel_data(dat_level1_finishers_last, 1, "last")
+# 
+# export_graaftel_data(dat_level3_finishers_first, 3, "first")
+# export_graaftel_data(dat_level3_finishers_middle, 3, "middle")
+# export_graaftel_data(dat_level3_finishers_last, 3, "last")
 ```
 
 # Verify Outputs
+
 ```{r}
 # Prepare data for verification
 # Combine all levels and encounter types to verify overall distribution
@@ -175,7 +179,9 @@ mean_accuracy_data %>%
   scale_fill_brewer(palette = "Set3") +
   theme(legend.position = "none")
 ```
+
 # Generate Data for Heatmaps
+
 ```{r}
 # Function to generate descriptive statistics for heatmap
 generate_descriptive_data <- function(data) {
@@ -207,7 +213,9 @@ dat4plot_level3_first <- generate_descriptive_data(dat_level3_first)
 dat4plot_level3_middle <- generate_descriptive_data(dat_level3_middle)
 dat4plot_level3_last <- generate_descriptive_data(dat_level3_last)
 ```
+
 # Descriptive Statistics
+
 ```{r}
 df_heatmaps <- bind_rows(
   dat4plot_level1       %>% mutate(facet_label = "Level 1: Overall"),
@@ -261,7 +269,7 @@ heatmap_facet <- ggplot(df_heatmaps,
                             fill = mean_acc, 
                             label = round(mean_acc, 2))) +
   geom_tile() +
-  geom_text(size = 1) +
+  geom_text(size = 1.2) +
   scale_fill_gradient2(
     limits = c(0.5, 1),
     midpoint = 0.75,
@@ -280,18 +288,18 @@ heatmap_facet <- ggplot(df_heatmaps,
   facet_wrap(~ facet_label, ncol = 4) +  # Adjust ncol as desired
   theme_minimal() +
   labs(
-    title = "Mean Accuracy Across Levels and Encounters",
+    title = "Mean accuracy by fact across levels and encounters",
     x = "Multiplier",
     y = "Multiplicand"
   ) +
   theme(
-    axis.text.x = element_text(size = 8),                  # Axis tick label size (x-axis)
-    axis.text.y = element_text(size = 8),                  # Axis tick label size (y-axis)
-    axis.title.x = element_text(size = 14),                # X-axis label size
-    axis.title.y = element_text(size = 14),                # Y-axis label size
+    axis.text.x = element_text(size = 7),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 7),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 18),                # X-axis label size
+    axis.title.y = element_text(size = 18),                # Y-axis label size
     legend.title = element_text(size = 14),                # Legend title size
     legend.key.height = unit(2, "cm"),                     # Legend key height
-    plot.title = element_text(size = 16, hjust = 0.5),     # Title size and centering
+    plot.title = element_text(size = 20, hjust = 0),     # Title size and centering
     strip.text = element_text(size = 12)                   # Facet label size
   )
 
@@ -352,7 +360,9 @@ print(heatmap_facet)
 ```
 
 # GraafTel Data Export Analysis
+
 ## Create mean accuracy datasets for each level
+
 ```{r}
 mean_accuracy_level1 <- verify_data %>%
   filter(level == 1) %>% # Filter for Level 1 data only
@@ -370,7 +380,9 @@ mean_accuracy_level3 <- verify_data %>%
   summarise(mean_accuracy = mean(correct), .groups = "drop") # Calculate mean accuracy
 
 ```
+
 ## Create mean accuracy datasets for each encounter
+
 ```{r}
 # Function to calculate mean accuracy from preprocessed datasets
 calculate_mean_accuracy <- function(data) {
@@ -394,7 +406,9 @@ mean_accuracy_level3_first <- calculate_mean_accuracy(dat_level3_first)
 mean_accuracy_level3_middle <- calculate_mean_accuracy(dat_level3_middle)
 mean_accuracy_level3_last <- calculate_mean_accuracy(dat_level3_last)
 ```
+
 # Create datasets for GraafTel ratings
+
 ```{r}
 # Function to filter and clean GraafTel ratings output
 filter_graaftel_data <- function(file_path) {
@@ -404,13 +418,13 @@ filter_graaftel_data <- function(file_path) {
     X3 = col_double(),
     X4 = col_double(),
     X5 = col_double(),
-    # X6 = col_double(),
-    # X7 = col_double(),
-    # X8 = col_double()
+    X6 = col_double(),
+    X7 = col_double(),
+    X8 = col_double()
   ))
 
   # Rename columns for clarity
-  colnames(graaftel_data) <- c("item", "cue_text", "skill1", "skill2", "skill3")
+  colnames(graaftel_data) <- c("item", "cue_text", "skill1", "skill2", "skill3", "skill4", "skill5", "skill6")
 
   # Filter out rows containing "student" in the first column
   graaftel_data <- graaftel_data %>%
@@ -426,8 +440,8 @@ filter_graaftel_data <- function(file_path) {
 
 # List of file paths for all GraafTel outputs
 file_paths <- list.files(
-  path = "./GT_ratings/GT_ratings_3s",
-  pattern = "s3l[1-3](first|middle|last).csv",
+  path = "./GT_ratings/GT_ratings_6s",
+  pattern = "s6l[1-3](first|middle|last).csv",
   full.names = TRUE
 )
 
@@ -438,17 +452,17 @@ filtered_graaftel_data <- lapply(file_paths, filter_graaftel_data)
 names(filtered_graaftel_data) <- gsub(".*/|\\.csv$", "", file_paths)
 
 # Assign cleaned datasets to individual variables for the 9 cases
-s3l1first <- filtered_graaftel_data[["s3l1first"]]
-s3l1middle <- filtered_graaftel_data[["s3l1middle"]]
-s3ls1last <- filtered_graaftel_data[["s3l1last"]]
-
-s3l2first <- filtered_graaftel_data[["s3l2first"]]
-s3l2middle <- filtered_graaftel_data[["s3l2middle"]]
-s3l2last <- filtered_graaftel_data[["s3l2last"]]
-
-s3l3first <- filtered_graaftel_data[["s3l3first"]]
-s3l3middle <- filtered_graaftel_data[["s3l3middle"]]
-s3l3last <- filtered_graaftel_data[["s3l3last"]]
+# s3l1first <- filtered_graaftel_data[["s3l1first"]]
+# s3l1middle <- filtered_graaftel_data[["s3l1middle"]]
+# s3ls1last <- filtered_graaftel_data[["s3l1last"]]
+# 
+# s3l2first <- filtered_graaftel_data[["s3l2first"]]
+# s3l2middle <- filtered_graaftel_data[["s3l2middle"]]
+# s3l2last <- filtered_graaftel_data[["s3l2last"]]
+# 
+# s3l3first <- filtered_graaftel_data[["s3l3first"]]
+# s3l3middle <- filtered_graaftel_data[["s3l3middle"]]
+# s3l3last <- filtered_graaftel_data[["s3l3last"]]
 
 # s4l1first <- filtered_graaftel_data[["s4l1first"]]
 # s4l1middle <- filtered_graaftel_data[["s4l1middle"]]
@@ -474,15 +488,21 @@ s3l3last <- filtered_graaftel_data[["s3l3last"]]
 # s5l3middle <- filtered_graaftel_data[["s5l3middle"]]
 # s5l3last <- filtered_graaftel_data[["s5l3last"]]
 
-# s6l1first <- filtered_graaftel_data[["s6l1first"]]
-# s6l1middle <- filtered_graaftel_data[["s6l1middle"]]
-# s6ls1last <- filtered_graaftel_data[["s6l1last"]]
-# 
-# s6l2first <- filtered_graaftel_data[["s6l2first"]]
-# s6l2middle <- filtered_graaftel_data[["s6l2middle"]]
-# s6l2last <- filtered_graaftel_data[["s6l2last"]]
+s6l1first <- filtered_graaftel_data[["s6l1first"]]
+s6l1middle <- filtered_graaftel_data[["s6l1middle"]]
+s6ls1last <- filtered_graaftel_data[["s6l1last"]]
+
+s6l2first <- filtered_graaftel_data[["s6l2first"]]
+s6l2middle <- filtered_graaftel_data[["s6l2middle"]]
+s6l2last <- filtered_graaftel_data[["s6l2last"]]
+
+s6l3first <- filtered_graaftel_data[["s6l3first"]]
+s6l3middle <- filtered_graaftel_data[["s6l3middle"]]
+s6l3last <- filtered_graaftel_data[["s6l3last"]]
 ```
+
 # Calculate and plot correlations between skill probabilties and mean accuracy
+
 ```{r}
 # Function to calculate correlations between skill probabilities and mean accuracy
 calculate_skill_correlations <- function(graaftel_data, mean_accuracy_data) {
@@ -569,7 +589,9 @@ ggplot(all_correlations, aes(x = skill, y = pearsons_r, fill = skill)) +
   ) +
   scale_fill_brewer(palette = "Set3", guide = "none")
 ```
-# Calculate and plot correlations between skill probabilties and reaction time
+
+# Calculate and plot correlations between skill probabilities and reaction time
+
 ```{r}
 # Function to calculate correlations between skill probabilities and reaction time
 calculate_reaction_time_correlations <- function(graaftel_data, encounter_data) {
@@ -660,23 +682,26 @@ ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, lab
   ) +
   theme_minimal() +
   labs(
-    title = "Skill Probabilities vs Mean Reaction Time Across Levels and Encounters",
+    title = "Skill probabilities vs mean reaction time",
     x = "Encounter",
     y = "Skill"
   ) +
   theme(
-    axis.text.x = element_text(size = 10),                  # X-axis tick labels
-    axis.text.y = element_text(size = 10),                  # Y-axis tick labels
-    axis.title.x = element_text(size = 14),                 # X-axis label size
-    axis.title.y = element_text(size = 14),                 # Y-axis label size
-    legend.title = element_text(size = 14),                 # Legend title size
-    legend.key.height = unit(2, "cm"),                      # Legend key height
-    plot.title = element_text(size = 14, hjust = 0.5),      # Title size and centering
+    axis.text.x = element_text(size = 16),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 16),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 18),                # X-axis label size
+    axis.title.y = element_text(size = 18),                # Y-axis label size
+    legend.key.height = unit(2, "cm"),                     # Legend key height
+    plot.title = element_text(size = 20, hjust = 0),     # Title size and centering
+    panel.grid = element_blank(),                           # Remove gridlines
+    legend.text = element_text(size = 14),
     strip.text = element_text(size = 12)                    # Facet label size
   )
 
 ```
+
 # Check whether any students have not done level 3 problems
+
 ```{r}
 # Identify unique students who have solved problems in Level 1
 students_level1 <- dat %>%
@@ -714,11 +739,12 @@ dat_level3_finishers_first <- filter_encounter(dat_level3_finishers, "first")
 dat_level3_finishers_middle <- filter_encounter(dat_level3_finishers, "middle")
 dat_level3_finishers_last <- filter_encounter(dat_level3_finishers, "last")
 ```
-# Calculate and plot correlations between skill probabilties from L2 and memory decay (alpha) from L3
+
+# Calculate and plot correlations between skill probabilties from L1 and memory decay (alpha) from L3
+
 ```{r}
-# Function to calculate correlations between Level 2 skill probabilities and Level 3 memory decay rates (alpha)
+# Function to calculate correlations between Level 1 skill probabilities and Level 3 memory decay rates (alpha)
 calculate_alpha_correlations <- function(graaftel_data, encounter_data) {
-  # Ensure cue_text alignment
   graaftel_data <- graaftel_data %>%
     mutate(cue_text = str_trim(cue_text))
   encounter_data <- encounter_data %>%
@@ -806,21 +832,24 @@ ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_
   theme_minimal() +
   theme(
     legend.title = element_text(angle = 90, hjust = 0.5, size = 14),
-    axis.text.x = element_text(size = 8),                  # Axis tick label size (x-axis)
-    axis.text.y = element_text(size = 8),                  # Axis tick label size (y-axis)
-    axis.title.x = element_text(size = 14),                # X-axis label size
-    axis.title.y = element_text(size = 14),                # Y-axis label size
+    axis.text.x = element_text(size = 16),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 16),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 18),                # X-axis label size
+    axis.title.y = element_text(size = 18),                # Y-axis label size
     legend.key.height = unit(2, "cm"),                     # Legend key height
-    plot.title = element_text(size = 14, hjust = 0.5),     # Title size and centering
-    strip.text = element_text(size = 12)                   # Facet label size
+    plot.title = element_text(size = 16, hjust = 0),     # Title size and centering
+    strip.text = element_text(size = 12),                   # Facet label size
+    legend.text = element_text(size = 14)
   ) +
   labs(
-    title = "Level 1 Skills vs Level 3 Memory Decay Rates (α) Across Encounters",
+    title = "Level 1 skills vs Level 3 memory decay rates (α) across encounters",
     x = "Encounter",
     y = "Skill"
   )
 ```
+
 # Calculate correlations against 2s (L2)
+
 ```{r}
 df_first <- s3l2first %>%
   mutate(encounter = "First")
@@ -935,7 +964,7 @@ heatmap_plot <- ggplot(heatmap_data, aes(x = comparison, y = skill, fill = pears
       title = "Pearson Correlation", # Define legend title
       title.position = "right",      # Position legend title
       title.theme = element_text(angle = 90, hjust = 0.5, size = 14), # Rotate and style the legend title
-      barheight = unit(8.4, "cm")    # Adjust legend bar height
+      barheight = unit(8.1, "cm")    # Adjust legend bar height
     )
   ) +
   theme_minimal() +
@@ -943,18 +972,19 @@ heatmap_plot <- ggplot(heatmap_data, aes(x = comparison, y = skill, fill = pears
     legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
   ) +
   labs(
-    title = "Correlations Between 2's and Other Groups Across Skills",
+    title = "Correlations between 2's and other groups across skills",
     x = "Comparison Group",
     y = "Skill"
   ) +
   theme(
-    axis.text.x = element_text(size = 12),                  # Axis tick label size (x-axis)
-    axis.text.y = element_text(size = 12),                  # Axis tick label size (y-axis)
-    axis.title.x = element_text(size = 14),                # X-axis label size
-    axis.title.y = element_text(size = 14),                # Y-axis label size
+    axis.text.x = element_text(size = 16),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 16),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 18),                # X-axis label size
+    axis.title.y = element_text(size = 18),                # Y-axis label size
     legend.key.height = unit(2, "cm"),                     # Legend key height
-    plot.title = element_text(size = 16, hjust = 0.5),     # Title size and centering
-    panel.grid = element_blank()                           # Remove gridlines
+    plot.title = element_text(size = 19, hjust = 0.5),     # Title size and centering
+    panel.grid = element_blank(),                           # Remove gridlines
+    legend.text = element_text(size = 14)
   )
 
 # Print the heatmap
@@ -962,7 +992,9 @@ print(heatmap_plot)
 
 
 ```
+
 # Calculate correlations against 3s (L2)
+
 ```{r}
 # Compute Correlations for (3 vs 1), (3 vs 2), (3 vs 4), ..., (3 vs 10)
 corr_results_3s <- bind_rows(
@@ -1007,7 +1039,7 @@ heatmap_plot_3s <- ggplot(heatmap_data_3s, aes(x = comparison, y = skill, fill =
       title = "Pearson Correlation", # Define legend title
       title.position = "right",      # Position legend title
       title.theme = element_text(angle = 90, hjust = 0.5, size = 14), # Rotate and style the legend title
-      barheight = unit(8.4, "cm")    # Adjust legend bar height
+      barheight = unit(8.1, "cm")    # Adjust legend bar height
     )
   ) +
   theme_minimal() +
@@ -1015,24 +1047,27 @@ heatmap_plot_3s <- ggplot(heatmap_data_3s, aes(x = comparison, y = skill, fill =
     legend.title = element_text(angle = 90, hjust = 0.5) # Rotate and centre the legend title
   ) +
   labs(
-    title = "Correlations Between 3's and Other Groups Across Skills",
+    title = "Correlations between 3's and other groups across skills",
     x = "Comparison Group",
     y = "Skill"
   ) +
   theme(
-    axis.text.x = element_text(size = 12),                  # Axis tick label size (x-axis)
-    axis.text.y = element_text(size = 12),                  # Axis tick label size (y-axis)
-    axis.title.x = element_text(size = 14),                # X-axis label size
-    axis.title.y = element_text(size = 14),                # Y-axis label size
+    axis.text.x = element_text(size = 16),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 16),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 18),                # X-axis label size
+    axis.title.y = element_text(size = 18),                # Y-axis label size
     legend.key.height = unit(2, "cm"),                     # Legend key height
-    plot.title = element_text(size = 16, hjust = 0.5),     # Title size and centering
-    panel.grid = element_blank()
+    plot.title = element_text(size = 19, hjust = 0.5),     # Title size and centering
+    panel.grid = element_blank(),                           # Remove gridlines
+    legend.text = element_text(size = 14)
   )
 
 # Print the heatmap
 print(heatmap_plot_3s)
 ```
+
 # Calculate correlations against 1s (L2)
+
 ```{r}
 # Compute Correlations for (1 vs 2), (1 vs 3), (1 vs 4), ..., (1 vs 10)
 corr_results_1s <- bind_rows(
@@ -1077,21 +1112,22 @@ heatmap_plot_1s <- ggplot(heatmap_data_1s, aes(x = comparison, y = skill, fill =
       title = "Pearson Correlation", # Define legend title
       title.position = "right",      # Position legend title
       title.theme = element_text(angle = 90, hjust = 0.5, size = 14), # Rotate and style the legend title
-      barheight = unit(8.4, "cm")    # Adjust legend bar height
+      barheight = unit(8.1, "cm")    # Adjust legend bar height
     )
   ) +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(size = 12),                  # Axis tick label size (x-axis)
-    axis.text.y = element_text(size = 12),                  # Axis tick label size (y-axis)
-    axis.title.x = element_text(size = 14),                # X-axis label size
-    axis.title.y = element_text(size = 14),                # Y-axis label size
+    axis.text.x = element_text(size = 16),                  # Axis tick label size (x-axis)
+    axis.text.y = element_text(size = 16),                  # Axis tick label size (y-axis)
+    axis.title.x = element_text(size = 18),                # X-axis label size
+    axis.title.y = element_text(size = 18),                # Y-axis label size
     legend.key.height = unit(2, "cm"),                     # Legend key height
-    plot.title = element_text(size = 16, hjust = 0.5),     # Title size and centering
-    panel.grid = element_blank()                           # Remove gridlines
+    plot.title = element_text(size = 19, hjust = 0.5),     # Title size and centering
+    panel.grid = element_blank(),                           # Remove gridlines
+    legend.text = element_text(size = 14)
   ) +
   labs(
-    title = "Correlations Between 1's and Other Groups Across Skills",
+    title = "Correlations between 1's and other groups across skills",
     x = "Comparison Group",
     y = "Skill"
   )
@@ -1099,7 +1135,9 @@ heatmap_plot_1s <- ggplot(heatmap_data_1s, aes(x = comparison, y = skill, fill =
 # Print the heatmap
 print(heatmap_plot_1s)
 ```
+
 # GT Descriptive Stats
+
 ```{r}
 compute_skill_correlation <- function(encounter_list, skill_count) {
   # Combine all encounters and calculate mean for each skill
@@ -1117,6 +1155,7 @@ compute_skill_correlation <- function(encounter_list, skill_count) {
   ggcorrplot(corr_mat,
              type = "lower",
              lab = TRUE,
+             lab_size = 6,
              title = paste(skill_count, "-Skill Correlation"),
              ggtheme = theme_minimal(),
              colors = c("#4575b4", "#f7f7f7", "#d73027"),
@@ -1126,7 +1165,7 @@ compute_skill_correlation <- function(encounter_list, skill_count) {
       y = "Skill"                   
     ) +
     theme(
-      axis.text.x = element_text(size = 12, angle = 0, vjust = 0.5),
+      axis.text.x = element_text(size = 12, angle = 0, vjust = 1),
       axis.text.y = element_text(size = 12),                 
       axis.title.x = element_text(size = 14),                
       axis.title.y = element_text(size = 14, angle = 90),    
