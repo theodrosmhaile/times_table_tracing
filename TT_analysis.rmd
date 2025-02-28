@@ -9,6 +9,8 @@ library(anytime)
 library(ggcorrplot)
 library(patchwork)
 library(dplyr)
+library(broom)
+library(psych)
 ```
 
 ## Description
@@ -417,14 +419,11 @@ filter_graaftel_data <- function(file_path) {
     X2 = col_character(),
     X3 = col_double(),
     X4 = col_double(),
-    X5 = col_double(),
-    X6 = col_double(),
-    X7 = col_double(),
-    X8 = col_double()
+    X5 = col_double()
   ))
 
   # Rename columns for clarity
-  colnames(graaftel_data) <- c("item", "cue_text", "skill1", "skill2", "skill3", "skill4", "skill5", "skill6")
+  colnames(graaftel_data) <- c("item", "cue_text", "skill1", "skill2", "skill3")
 
   # Filter out rows containing "student" in the first column
   graaftel_data <- graaftel_data %>%
@@ -440,8 +439,8 @@ filter_graaftel_data <- function(file_path) {
 
 # List of file paths for all GraafTel outputs
 file_paths <- list.files(
-  path = "./GT_ratings/GT_ratings_6s",
-  pattern = "s6l[1-3](first|middle|last).csv",
+  path = "./GT_ratings/GT_ratings_3s",
+  pattern = "s3l[1-3](first|middle|last).csv",
   full.names = TRUE
 )
 
@@ -452,17 +451,17 @@ filtered_graaftel_data <- lapply(file_paths, filter_graaftel_data)
 names(filtered_graaftel_data) <- gsub(".*/|\\.csv$", "", file_paths)
 
 # Assign cleaned datasets to individual variables for the 9 cases
-# s3l1first <- filtered_graaftel_data[["s3l1first"]]
-# s3l1middle <- filtered_graaftel_data[["s3l1middle"]]
-# s3ls1last <- filtered_graaftel_data[["s3l1last"]]
-# 
-# s3l2first <- filtered_graaftel_data[["s3l2first"]]
-# s3l2middle <- filtered_graaftel_data[["s3l2middle"]]
-# s3l2last <- filtered_graaftel_data[["s3l2last"]]
-# 
-# s3l3first <- filtered_graaftel_data[["s3l3first"]]
-# s3l3middle <- filtered_graaftel_data[["s3l3middle"]]
-# s3l3last <- filtered_graaftel_data[["s3l3last"]]
+s3l1first <- filtered_graaftel_data[["s3l1first"]]
+s3l1middle <- filtered_graaftel_data[["s3l1middle"]]
+s3l1last <- filtered_graaftel_data[["s3l1last"]]
+
+s3l2first <- filtered_graaftel_data[["s3l2first"]]
+s3l2middle <- filtered_graaftel_data[["s3l2middle"]]
+s3l2last <- filtered_graaftel_data[["s3l2last"]]
+
+s3l3first <- filtered_graaftel_data[["s3l3first"]]
+s3l3middle <- filtered_graaftel_data[["s3l3middle"]]
+s3l3last <- filtered_graaftel_data[["s3l3last"]]
 
 # s4l1first <- filtered_graaftel_data[["s4l1first"]]
 # s4l1middle <- filtered_graaftel_data[["s4l1middle"]]
@@ -488,17 +487,17 @@ names(filtered_graaftel_data) <- gsub(".*/|\\.csv$", "", file_paths)
 # s5l3middle <- filtered_graaftel_data[["s5l3middle"]]
 # s5l3last <- filtered_graaftel_data[["s5l3last"]]
 
-s6l1first <- filtered_graaftel_data[["s6l1first"]]
-s6l1middle <- filtered_graaftel_data[["s6l1middle"]]
-s6ls1last <- filtered_graaftel_data[["s6l1last"]]
-
-s6l2first <- filtered_graaftel_data[["s6l2first"]]
-s6l2middle <- filtered_graaftel_data[["s6l2middle"]]
-s6l2last <- filtered_graaftel_data[["s6l2last"]]
-
-s6l3first <- filtered_graaftel_data[["s6l3first"]]
-s6l3middle <- filtered_graaftel_data[["s6l3middle"]]
-s6l3last <- filtered_graaftel_data[["s6l3last"]]
+# s6l1first <- filtered_graaftel_data[["s6l1first"]]
+# s6l1middle <- filtered_graaftel_data[["s6l1middle"]]
+# s6ls1last <- filtered_graaftel_data[["s6l1last"]]
+# 
+# s6l2first <- filtered_graaftel_data[["s6l2first"]]
+# s6l2middle <- filtered_graaftel_data[["s6l2middle"]]
+# s6l2last <- filtered_graaftel_data[["s6l2last"]]
+# 
+# s6l3first <- filtered_graaftel_data[["s6l3first"]]
+# s6l3middle <- filtered_graaftel_data[["s6l3middle"]]
+# s6l3last <- filtered_graaftel_data[["s6l3last"]]
 ```
 
 # Calculate and plot correlations between skill probabilties and mean accuracy
@@ -544,27 +543,27 @@ combine_correlation_data <- function(levels) {
 
 # Data setup for each level (replace these with your datasets)
 level1 <- list(
-  first = l1_first_3sk,
-  middle = l1_middle_3sk,
-  last = l1_last_3sk,
+  first = s3l1first,
+  middle = s3l1middle,
+  last = s3l1last,
   mean_accuracy_first = mean_accuracy_level1_first,
   mean_accuracy_middle = mean_accuracy_level1_middle,
   mean_accuracy_last = mean_accuracy_level1_last
 )
 
 level2 <- list(
-  first = l2_first_3sk,
-  middle = l2_middle_3sk,
-  last = l2_last_3sk,
+  first = s3l2first,
+  middle = s3l2middle,
+  last = s3l2last,
   mean_accuracy_first = mean_accuracy_level2_first,
   mean_accuracy_middle = mean_accuracy_level2_middle,
   mean_accuracy_last = mean_accuracy_level2_last
 )
 
 level3 <- list(
-  first = l3_first_3sk,
-  middle = l3_middle_3sk,
-  last = l3_last_3sk,
+  first = s3l3first,
+  middle = s3l3middle,
+  last = s3l3last,
   mean_accuracy_first = mean_accuracy_level3_first,
   mean_accuracy_middle = mean_accuracy_level3_middle,
   mean_accuracy_last = mean_accuracy_level3_last
@@ -593,7 +592,7 @@ ggplot(all_correlations, aes(x = skill, y = pearsons_r, fill = skill)) +
 # Calculate and plot correlations between skill probabilities and reaction time
 
 ```{r}
-# Function to calculate correlations between skill probabilities and reaction time
+# Function to calculate correlations between skill probabilities and reaction time with significance testing
 calculate_reaction_time_correlations <- function(graaftel_data, encounter_data) {
   # Ensure cue_text alignment
   graaftel_data <- graaftel_data %>%
@@ -616,19 +615,29 @@ calculate_reaction_time_correlations <- function(graaftel_data, encounter_data) 
   merged_data <- graaftel_data %>%
     left_join(reaction_time_data, by = "cue_text")
 
-  # Calculate Pearson's r for each skill
+  # Calculate Pearson's r with p-values and confidence intervals
   skill_correlations <- merged_data %>%
     summarise(
-      skill1_r = cor(mean_reaction_time, skill1, use = "complete.obs"),
-      skill2_r = cor(mean_reaction_time, skill2, use = "complete.obs"),
-      skill3_r = cor(mean_reaction_time, skill3, use = "complete.obs")
+      skill1 = list(broom::tidy(cor.test(mean_reaction_time, skill1, method = "pearson"))),
+      skill2 = list(broom::tidy(cor.test(mean_reaction_time, skill2, method = "pearson"))),
+      skill3 = list(broom::tidy(cor.test(mean_reaction_time, skill3, method = "pearson")))
+    ) %>%
+    pivot_longer(cols = everything(), names_to = "skill", values_to = "test") %>%
+    unnest(test) %>%
+    select(skill, estimate, p.value, conf.low, conf.high) %>%
+    rename(pearsons_r = estimate) %>%
+    mutate(
+      # Bonferroni correction for 3 tests per encounter
+      p.value.adj = p.adjust(p.value, method = "bonferroni", n = 3),
+      significance = case_when(
+        p.value.adj < 0.001 ~ "***",
+        p.value.adj < 0.01 ~ "**",
+        p.value.adj < 0.05 ~ "*",
+        TRUE ~ ""
+      )
     )
 
-  # Reshape data for plotting
-  skill_correlations_long <- skill_correlations %>%
-    pivot_longer(cols = starts_with("skill"), names_to = "skill", values_to = "pearsons_r")
-
-  return(skill_correlations_long)
+  return(skill_correlations)
 }
 
 # Combine all correlation data into a single dataframe
@@ -656,14 +665,15 @@ correlation_results <- correlation_results %>%
 # Replace skill labels in the dataframe
 correlation_results <- correlation_results %>%
   mutate(skill = recode(skill,
-                        "skill1_r" = "1",
-                        "skill2_r" = "2",
-                        "skill3_r" = "3"))
+                        "skill1" = "1",
+                        "skill2" = "2",
+                        "skill3" = "3"))
 
-# Plot Pearson's r for all levels and encounters using a facet grid
-ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
-  geom_tile() +
-  geom_text(size = 6) + # Adjust text inside tiles
+# Plot Pearson's r with significance stars
+ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, 
+                               label = sprintf("%.2f%s", pearsons_r, significance))) +
+  geom_tile(color = "white") +
+  geom_text(size = 5.5, color = "black") +
   facet_wrap(vars(level)) +
   scale_fill_gradient2(
     limits = c(-1, 1),
@@ -674,30 +684,30 @@ ggplot(correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, lab
     guide = guide_colorbar(
       title = "Pearson Correlation", 
       title.position = "right", 
-      title.theme = element_text(angle = 90, hjust = 0.5, size = 14), # Rotate and adjust legend title size
-      barheight = unit(8, "cm") # Adjust legend bar height
+      title.theme = element_text(angle = 90, hjust = 0.5, size = 14),
+      barheight = unit(8, "cm")
     ),
-    aesthetics = 'fill',
-    breaks = c(-1, -0.5, 0, 0.5, 1) # Set legend breaks to -1, -0.5, 0, 0.5, 1
+    breaks = c(-1, -0.5, 0, 0.5, 1)
   ) +
   theme_minimal() +
   labs(
     title = "Skill probabilities vs mean reaction time",
     x = "Encounter",
-    y = "Skill"
+    y = "Skill",
+    caption = "Significance levels: *** p < 0.001; ** p < 0.01; * p < 0.05 (Bonferroni-adjusted)"
   ) +
   theme(
-    axis.text.x = element_text(size = 16),                  # Axis tick label size (x-axis)
-    axis.text.y = element_text(size = 16),                  # Axis tick label size (y-axis)
-    axis.title.x = element_text(size = 18),                # X-axis label size
-    axis.title.y = element_text(size = 18),                # Y-axis label size
-    legend.key.height = unit(2, "cm"),                     # Legend key height
-    plot.title = element_text(size = 20, hjust = 0),     # Title size and centering
-    panel.grid = element_blank(),                           # Remove gridlines
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    legend.key.height = unit(2, "cm"),
+    plot.title = element_text(size = 20, hjust = 0),
+    panel.grid = element_blank(),
     legend.text = element_text(size = 14),
-    strip.text = element_text(size = 12)                    # Facet label size
+    strip.text = element_text(size = 14),
+    plot.caption = element_text(size = 12, hjust = 0)
   )
-
 ```
 
 # Check whether any students have not done level 3 problems
@@ -1204,4 +1214,9 @@ print(plot_3_overall)
 print(plot_4_overall)
 print(plot_5_overall)
 print(plot_6_overall)
+
+# Factor analysis on skills
+skill_data <- s3l2first %>% select(skill1, skill2, skill3)
+fa_model <- fa(skill_data, nfactors = 3, rotate = "varimax")
+print(fa_model$loadings, cutoff = 0.3)
 ```
