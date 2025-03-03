@@ -430,6 +430,17 @@ calculate_accuracy_by_level <- function(data) {
     )
 }
 
+# NEW: Function to calculate mean and SD for each combination of level and encounter
+calculate_accuracy_by_level_and_encounter <- function(data) {
+  data %>%
+    group_by(level, encounter_type) %>%
+    summarise(
+      mean_accuracy = mean(correct, na.rm = TRUE),
+      sd_accuracy = sd(correct, na.rm = TRUE),
+      .groups = "drop"
+    )
+}
+
 # Combine all datasets into one for overall accuracy calculations
 all_data <- bind_rows(
   dat_level1_first %>% mutate(level = 1, encounter_type = "first"),
@@ -458,35 +469,31 @@ accuracy_by_encounter <- calculate_accuracy_by_encounter(all_data)
 # Calculate mean and SD grouped by level
 accuracy_by_level <- calculate_accuracy_by_level(all_data)
 
+# Calculate mean and SD grouped by level AND encounter
+accuracy_by_level_and_encounter <- calculate_accuracy_by_level_and_encounter(all_data)
+
 # Output results
 print(overall_accuracy)
 print(accuracy_by_multiplicand)
 print(accuracy_by_multiplier)
 print(accuracy_by_encounter)
 print(accuracy_by_level)
+print(accuracy_by_level_and_encounter)
 
+# Example ggplot usage (unchanged, for reference)
 ggplot() +
-  # Curve for multipliers (blue)
   geom_line(data = accuracy_by_multiplier,
             aes(x = multiplier, y = mean_accuracy, group = "Multiplier", color = "Multiplier"),
             linewidth = 1) +
   geom_point(data = accuracy_by_multiplier,
              aes(x = multiplier, y = mean_accuracy, group = "Multiplier", color = "Multiplier"),
              size = 3) +
-  # geom_errorbar(data = accuracy_by_multiplier,
-  #               aes(x = multiplier, ymin = mean_accuracy - sd_accuracy, ymax = mean_accuracy + sd_accuracy),
-  #               width = 0.2, color = "#4575b4", position = position_dodge(0.1)) +
-  # Curve for multiplicands (red)
   geom_line(data = accuracy_by_multiplicand,
             aes(x = multiplicand, y = mean_accuracy, group = "Multiplicand", color = "Multiplicand"),
             linewidth = 1) +
   geom_point(data = accuracy_by_multiplicand,
              aes(x = multiplicand, y = mean_accuracy, group = "Multiplicand", color = "Multiplicand"),
              size = 3) +
-  # geom_errorbar(data = accuracy_by_multiplicand,
-  #               aes(x = multiplicand, ymin = mean_accuracy - sd_accuracy, ymax = mean_accuracy + sd_accuracy),
-  #               width = 0.2, color = "#d73027", position = position_dodge(0.1)) +
-  # Labels and styling
   labs(
     title = "Mean Accuracy Across Multiplication Fact Groups",
     x = "Number",
