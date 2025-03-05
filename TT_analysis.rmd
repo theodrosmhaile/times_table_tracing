@@ -796,47 +796,57 @@ dat_level3_finishers_middle <- filter_encounter(dat_level3_finishers, "middle")
 dat_level3_finishers_last <- filter_encounter(dat_level3_finishers, "last")
 ```
 
-# Calculate and plot correlations between skill probabilties from L1 and memory decay (alpha) from L3
-
+# Calculate and plot correlations between item-level skill probabilties from L1 and their memory decay (alpha) from L3
 ```{r}
 # Function to calculate correlations between Level 1 skill probabilities and Level 3 memory decay rates (alpha)
+# with significance testing and Bonferroni correction
 calculate_alpha_correlations <- function(graaftel_data, encounter_data) {
   graaftel_data <- graaftel_data %>%
     mutate(cue_text = str_trim(cue_text))
   encounter_data <- encounter_data %>%
     mutate(cue_text = str_trim(cue_text))
-
+  
   # Remove rows with missing cue_text
   graaftel_data <- graaftel_data %>%
     filter(!is.na(cue_text))
   encounter_data <- encounter_data %>%
     filter(!is.na(cue_text))
-
+  
   # Summarise alpha (memory decay rate) by cue_text
   alpha_data <- encounter_data %>%
     group_by(cue_text) %>%
     summarise(mean_alpha = mean(alpha, na.rm = TRUE), .groups = "drop")
-
+  
   # Join GraafTel data with alpha data on "cue_text"
   merged_data <- graaftel_data %>%
     left_join(alpha_data, by = "cue_text")
-
-  # Calculate Pearson's r for each skill
+  
+  # Calculate Pearson's r with p-values and confidence intervals
   skill_correlations <- merged_data %>%
     summarise(
-      skill1_r = cor(mean_alpha, skill1, use = "complete.obs"),
-      skill2_r = cor(mean_alpha, skill2, use = "complete.obs"),
-      skill3_r = cor(mean_alpha, skill3, use = "complete.obs")
+      skill1 = list(broom::tidy(cor.test(mean_alpha, skill1, method = "pearson"))),
+      skill2 = list(broom::tidy(cor.test(mean_alpha, skill2, method = "pearson"))),
+      skill3 = list(broom::tidy(cor.test(mean_alpha, skill3, method = "pearson")))
+    ) %>%
+    pivot_longer(cols = everything(), names_to = "skill", values_to = "test") %>%
+    unnest(test) %>%
+    select(skill, estimate, p.value, conf.low, conf.high) %>%
+    rename(pearsons_r = estimate) %>%
+    mutate(
+      # Bonferroni correction for 3 tests per encounter
+      p.value.adj = p.adjust(p.value, method = "bonferroni", n = 3),
+      significance = case_when(
+        p.value.adj < 0.001 ~ "***",
+        p.value.adj < 0.01 ~ "**",
+        p.value.adj < 0.05 ~ "*",
+        TRUE ~ ""
+      )
     )
-
-  # Reshape data for plotting
-  skill_correlations_long <- skill_correlations %>%
-    pivot_longer(cols = starts_with("skill"), names_to = "skill", values_to = "pearsons_r")
-
-  return(skill_correlations_long)
+  
+  return(skill_correlations)
 }
 
-# Combine all correlation data into a single dataframe for Level 2 skills and Level 3 memory decay rates
+# Combine all correlation data into a single dataframe for Level 1 skills and Level 3 memory decay rates
 combine_alpha_correlation_data <- function(encounter, graaftel_data, encounter_data) {
   correlations <- calculate_alpha_correlations(graaftel_data, encounter_data)
   correlations <- correlations %>%
@@ -844,12 +854,7 @@ combine_alpha_correlation_data <- function(encounter, graaftel_data, encounter_d
   return(correlations)
 }
 
-# Load GraafTel outputs for Level 1 from the /GT_ratings/finishers/ directory
-finishers_s3l1first <- filter_graaftel_data("./GT_ratings/finishers13/s3l1first.csv", s = 3)
-finishers_s3l1middle <- filter_graaftel_data("./GT_ratings/finishers13/s3l1middle.csv", s = 3)
-finishers_s3l1last <- filter_graaftel_data("./GT_ratings/finishers13/s3l1last.csv", s = 3)
-
-# Create a consolidated dataframe for Level 2 skills vs Level 3 memory decay rates correlations
+# Create a consolidated dataframe for Level 1 skills vs Level 3 memory decay rates correlations
 alpha_correlation_results <- bind_rows(
   combine_alpha_correlation_data("First", finishers_s3l1first, dat_level3_finishers_first),
   combine_alpha_correlation_data("Middle", finishers_s3l1middle, dat_level3_finishers_middle),
@@ -863,14 +868,15 @@ alpha_correlation_results <- alpha_correlation_results %>%
 # Replace skill labels in the dataframe
 alpha_correlation_results <- alpha_correlation_results %>%
   mutate(skill = recode(skill,
-                        "skill1_r" = "1",
-                        "skill2_r" = "2",
-                        "skill3_r" = "3"))
+                        "skill1" = "1",
+                        "skill2" = "2",
+                        "skill3" = "3"))
 
-# Plot Pearson's r for Level 2 skills and Level 3 memory decay rates using a facet grid
-ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_r, label = round(pearsons_r, 2))) +
-  geom_tile() +
-  geom_text(size = 6) +
+# Plot Pearson's r with significance stars
+ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_r,
+                                      label = sprintf("%.2f%s", pearsons_r, significance))) +
+  geom_tile(color = "white") +
+  geom_text(size = 5.5, color = "black") +
   scale_fill_gradient2(
     limits = c(-1, 1),
     midpoint = 0,
@@ -878,26 +884,199 @@ ggplot(alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_
     mid = '#f7f7f7',
     high = '#d73027',
     guide = guide_colorbar(
-      title = "Pearson Correlation",
-      title.position = "right",
-      barheight = unit(8.9, "cm")
+      title = "Pearson Correlation", 
+      title.position = "right", 
+      title.theme = element_text(angle = 90, hjust = 0.5, size = 18),
+      barheight = unit(8, "cm")
     ),
-    aesthetics = 'fill',
-    breaks = c(-1, -0.5, 0, 0.5, 1),
+    breaks = c(-1, -0.5, 0, 0.5, 1)
   ) +
   custom_theme() +
-  theme(
-    plot.title = element_text(size = 22, hjust = 0)
-  ) +
   labs(
     title = "Level 1 Skills vs Level 3 Memory Decay Rates (α)",
-    subtitle = "Across Encounters",
+    subtitle = "Items Across Encounters",
     x = "Encounter",
-    y = "Skill"
+    y = "Skill",
+    caption = "Significance levels: *** p < 0.001; ** p < 0.01; * p < 0.05 (Bonferroni-adjusted)"
+  ) +
+  theme(
+    panel.grid = element_blank(),
+    plot.caption = element_text(size = 14, hjust = 0)
   )
 ```
 
 
+# Calculate and plot correlations between student-level skill probabilitiessig from L1 and their memory decay (alpha) from L3
+```{r}
+# Function to extract and analyze student-level data from GraafTel outputs
+filter_graaftel_student_data <- function(file_path, s) {
+  num_cols <- 2 + s
+  # Create a col_types specification: first two columns as character, remaining as double
+  col_types_expr <- do.call(
+    cols, 
+    as.list(setNames(
+      c(list(col_character(), col_character()), rep(list(col_double()), s)),
+      paste0("X", 1:num_cols)
+    ))
+  )
+  
+  # Read the file with no header and the appropriate column types
+  graaftel_data <- read_csv(file_path, col_names = FALSE, col_types = col_types_expr)
+  
+  # Set column names: "item", "student_id", then "skill1", "skill2", ..., "skill{s}"
+  colnames(graaftel_data) <- c("item", "student_id", paste0("skill", 1:s))
+  
+  # Filter to ONLY include rows with "student" in the 'item' column
+  graaftel_data <- graaftel_data %>%
+    filter(str_detect(item, "student")) %>%
+    select(-item) %>%
+    mutate(
+      student_id = str_trim(student_id, side = "both"),
+      # Convert student_id to numeric to match TafelTrainer data format
+      student_id = as.numeric(student_id)
+    )
+  
+  return(graaftel_data)
+}
+
+# Initialize lists to store student skill data for Level 1 and Level 3
+student_l1_skill_data <- list()
+student_l3_skill_data <- list()
+
+# Process Level 1 student data files
+l1_file_paths <- list.files(
+  path = "./GT_ratings/finishers13",
+  pattern = "s3l1(first|middle|last).csv",
+  full.names = TRUE
+)
+
+for(file_path in l1_file_paths) {
+  encounter_type <- str_extract(file_path, "(first|middle|last)")
+  student_l1_skill_data[[encounter_type]] <- filter_graaftel_student_data(file_path, 3)
+}
+
+# Process Level 3 student data files
+l3_file_paths <- list.files(
+  path = "./GT_ratings/finishers13",
+  pattern = "s3l3(first|middle|last).csv",
+  full.names = TRUE
+)
+
+for(file_path in l3_file_paths) {
+  encounter_type <- str_extract(file_path, "(first|middle|last)")
+  student_l3_skill_data[[encounter_type]] <- filter_graaftel_student_data(file_path, 3)
+}
+
+# Calculate student-level average memory decay rates for Level 3
+student_alpha_data <- list()
+
+# First encounter
+student_alpha_data[["first"]] <- dat_level3_finishers %>%
+  filter(encounter_num == 1) %>%
+  group_by(user_id) %>%
+  summarise(mean_alpha = mean(alpha, na.rm = TRUE), .groups = "drop") %>%
+  rename(student_id = user_id)
+
+# Middle encounter
+student_alpha_data[["middle"]] <- dat_level3_finishers %>%
+  group_by(user_id, cue_text) %>%
+  mutate(mid_encounter = ceiling(max(encounter_num) / 2)) %>%
+  filter(encounter_num == mid_encounter) %>%
+  ungroup() %>%
+  group_by(user_id) %>%
+  summarise(mean_alpha = mean(alpha, na.rm = TRUE), .groups = "drop") %>%
+  rename(student_id = user_id)
+
+# Last encounter
+student_alpha_data[["last"]] <- dat_level3_finishers %>%
+  group_by(user_id, cue_text) %>%
+  filter(encounter_num == max(encounter_num)) %>%
+  ungroup() %>%
+  group_by(user_id) %>%
+  summarise(mean_alpha = mean(alpha, na.rm = TRUE), .groups = "drop") %>%
+  rename(student_id = user_id)
+
+# Function to calculate correlations between student Level 1 skills and Level 3 memory decay rates
+# with significance testing and Bonferroni correction
+calculate_student_alpha_correlations <- function(skill_data, alpha_data) {
+  # Join skill data with alpha data on student_id
+  merged_data <- skill_data %>%
+    inner_join(alpha_data, by = "student_id")
+  
+  # Calculate Pearson's r with p-values and confidence intervals
+  skill_correlations <- merged_data %>%
+    summarise(
+      skill1 = list(broom::tidy(cor.test(mean_alpha, skill1, method = "pearson"))),
+      skill2 = list(broom::tidy(cor.test(mean_alpha, skill2, method = "pearson"))),
+      skill3 = list(broom::tidy(cor.test(mean_alpha, skill3, method = "pearson")))
+    ) %>%
+    pivot_longer(cols = everything(), names_to = "skill", values_to = "test") %>%
+    unnest(test) %>%
+    select(skill, estimate, p.value, conf.low, conf.high) %>%
+    rename(pearsons_r = estimate) %>%
+    mutate(
+      # Bonferroni correction for 3 tests per encounter
+      p.value.adj = p.adjust(p.value, method = "bonferroni", n = 3),
+      significance = case_when(
+        p.value.adj < 0.001 ~ "***",
+        p.value.adj < 0.01 ~ "**",
+        p.value.adj < 0.05 ~ "*",
+        TRUE ~ ""
+      )
+    )
+  
+  return(skill_correlations)
+}
+
+# Create a consolidated dataframe for student-level correlations
+student_alpha_correlation_results <- bind_rows(
+  calculate_student_alpha_correlations(student_l1_skill_data[["first"]], student_alpha_data[["first"]]) %>% 
+    mutate(encounter = "First"),
+  calculate_student_alpha_correlations(student_l1_skill_data[["middle"]], student_alpha_data[["middle"]]) %>% 
+    mutate(encounter = "Middle"),
+  calculate_student_alpha_correlations(student_l1_skill_data[["last"]], student_alpha_data[["last"]]) %>% 
+    mutate(encounter = "Last")
+)
+
+# Ensure proper ordering of encounters and skills
+student_alpha_correlation_results <- student_alpha_correlation_results %>%
+  mutate(
+    encounter = factor(encounter, levels = c("First", "Middle", "Last")),
+    skill = as.numeric(str_extract(skill, "\\d+"))
+  )
+
+# Plot student-level correlations
+ggplot(student_alpha_correlation_results, aes(x = encounter, y = skill, fill = pearsons_r,
+                                              label = sprintf("%.2f%s", pearsons_r, significance))) +
+  geom_tile(color = "white") +
+  geom_text(size = 5.5, color = "black") +
+  scale_fill_gradient2(
+    limits = c(-1, 1),
+    midpoint = 0,
+    low = '#4575b4',
+    mid = '#f7f7f7',
+    high = '#d73027',
+    guide = guide_colorbar(
+      title = "Pearson Correlation", 
+      title.position = "right", 
+      title.theme = element_text(angle = 90, hjust = 0.5, size = 18),
+      barheight = unit(8, "cm")
+    ),
+    breaks = c(-1, -0.5, 0, 0.5, 1)
+  ) +
+  custom_theme() +
+  labs(
+    title = "Level 1 Skills vs Level 3 Memory Decay Rates (α)",
+    subtitle = "Students Across Encounters",
+    x = "Encounter",
+    y = "Skill",
+    caption = "Significance levels: *** p < 0.001; ** p < 0.01; * p < 0.05 (Bonferroni-adjusted)"
+  ) +
+  theme(
+    panel.grid = element_blank(),
+    plot.caption = element_text(size = 14, hjust = 0)
+  )
+```
 # Export data for GT
 
 ```{r}
